@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fbfcfe;
-  --foreground: #0f172a;
+  --background: #faf9f6;
+  --foreground: #18181b;
 
-  --primary: #2f80ed;
-  --primary-dark: #176bd2;
+  --primary: #6d5dfc;
+  --primary-dark: #5747e8;
 
-  --navy: #183153;
-  --navy-dark: #10243d;
+  --indigo: #1e1b4b;
+  --indigo-dark: #14112f;
 
-  --muted: #64748b;
-  --border: #e2e8f0;
+  --lavender: #eeeafe;
+  --lavender-soft: #f5f3ff;
+
+  --muted: #71717a;
+  --border: #e8e5e0;
 }
 
 * {
@@ -20,6 +23,12 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -50,11 +59,10 @@ a {
 }
 
 ::selection {
-  background: #bfdbfe;
-  color: #183153;
+  background: #ddd8ff;
+  color: #1e1b4b;
 }
 
-/* Custom display font utility used in app/page.tsx */
 .font-display {
   font-family:
     Georgia,
@@ -62,35 +70,34 @@ a {
     serif;
 }
 
-/* Background grid used in the hero section */
+/* Hero background pattern */
 .agla-grid {
   background-image:
     linear-gradient(
       to right,
-      rgba(47, 128, 237, 0.08) 1px,
+      rgba(109, 93, 252, 0.09) 1px,
       transparent 1px
     ),
     linear-gradient(
       to bottom,
-      rgba(47, 128, 237, 0.08) 1px,
+      rgba(109, 93, 252, 0.09) 1px,
       transparent 1px
     );
 
   background-size: 48px 48px;
+
   mask-image: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.75),
+    rgba(0, 0, 0, 0.7),
     transparent 90%
   );
 }
 
-/* Better focus states for accessibility */
 :focus-visible {
-  outline: 3px solid rgba(47, 128, 237, 0.35);
+  outline: 3px solid rgba(109, 93, 252, 0.35);
   outline-offset: 3px;
 }
 
-/* Smooth transitions for interactive elements */
 a,
 button {
   transition:
@@ -101,21 +108,134 @@ button {
     transform 0.2s ease;
 }
 
-/* Prevent horizontal scrolling */
-html,
-body {
-  max-width: 100%;
-  overflow-x: hidden;
+/* ------------------------------
+   GLOBAL AG LA KADAM COLOR OVERRIDES
+   These replace the previous blue/navy
+   palette used in page.tsx
+-------------------------------- */
+
+/* Primary blue backgrounds → violet */
+.bg-\[\#2f80ed\] {
+  background-color: #6d5dfc !important;
 }
 
-/* Improve mobile text rendering */
+.hover\:bg-\[\#176bd2\]:hover {
+  background-color: #5747e8 !important;
+}
+
+/* Navy backgrounds → indigo */
+.bg-\[\#183153\] {
+  background-color: #1e1b4b !important;
+}
+
+.bg-\[\#10243d\] {
+  background-color: #14112f !important;
+}
+
+/* Main dark text → indigo */
+.text-\[\#183153\] {
+  color: #1e1b4b !important;
+}
+
+/* Primary blue text → violet */
+.text-\[\#2f80ed\] {
+  color: #6d5dfc !important;
+}
+
+/* Hover text */
+.hover\:text-\[\#2f80ed\]:hover {
+  color: #6d5dfc !important;
+}
+
+/* Hero light blue → warm cream/lavender */
+.from-\[\#eef6ff\] {
+  --tw-gradient-from: #f5f3ff !important;
+}
+
+.to-white {
+  --tw-gradient-to: #faf9f6 !important;
+}
+
+/* Light blue cards → lavender */
+.bg-\[\#eaf3ff\] {
+  background-color: #eeeafe !important;
+}
+
+/* Pale blue sections → soft lavender */
+.bg-\[\#f7faff\] {
+  background-color: #f5f3ff !important;
+}
+
+/* Light text accent */
+.text-blue-200 {
+  color: #c7c1ff !important;
+}
+
+.text-blue-100\/80 {
+  color: rgba(231, 228, 255, 0.8) !important;
+}
+
+/* Blue borders */
+.border-blue-100 {
+  border-color: #e4e0ff !important;
+}
+
+.border-blue-200 {
+  border-color: #d6d0ff !important;
+}
+
+.hover\:border-blue-200:hover,
+.hover\:border-blue-300:hover {
+  border-color: #b9afff !important;
+}
+
+/* Light blue backgrounds */
+.bg-blue-50 {
+  background-color: #f5f3ff !important;
+}
+
+.bg-blue-50\/50 {
+  background-color: rgba(245, 243, 255, 0.5) !important;
+}
+
+.hover\:bg-blue-50:hover {
+  background-color: #f5f3ff !important;
+}
+
+/* Blue rings */
+.hover\:ring-blue-200:hover {
+  --tw-ring-color: #d6d0ff !important;
+}
+
+/* Various gradient colors used in cards */
+.from-blue-100 {
+  --tw-gradient-from: #eeeafe !important;
+}
+
+.to-blue-200 {
+  --tw-gradient-to: #dcd6ff !important;
+}
+
+/* Footer and CTA violet glow */
+.bg-\[\#2f80ed\].opacity-30 {
+  background-color: #6d5dfc !important;
+}
+
+/* Shadow color adjustments */
+.shadow-\[0_20px_60px_-25px_rgba\(25\,70\,120\,\.35\)\] {
+  box-shadow: 0 20px 60px -25px rgba(80, 65, 180, 0.3) !important;
+}
+
+/* ------------------------------
+   RESPONSIVE
+-------------------------------- */
+
 @media (max-width: 640px) {
   .agla-grid {
     background-size: 32px 32px;
   }
 }
 
-/* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
