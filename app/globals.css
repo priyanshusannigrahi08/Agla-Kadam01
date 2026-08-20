@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #faf9f6;
@@ -23,16 +25,14 @@
 
 html {
   scroll-behavior: smooth;
-}
-
-html,
-body {
   max-width: 100%;
   overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
@@ -63,14 +63,12 @@ a {
   color: #1e1b4b;
 }
 
+/* Display font */
 .font-display {
-  font-family:
-    Georgia,
-    "Times New Roman",
-    serif;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
-/* Hero background pattern */
+/* Hero grid */
 .agla-grid {
   background-image:
     linear-gradient(
@@ -108,13 +106,11 @@ button {
     transform 0.2s ease;
 }
 
-/* ------------------------------
-   GLOBAL AG LA KADAM COLOR OVERRIDES
-   These replace the previous blue/navy
-   palette used in page.tsx
--------------------------------- */
+/* =====================================================
+   AG LA KADAM VIOLET + INDIGO COLOR OVERRIDES
+   ===================================================== */
 
-/* Primary blue backgrounds → violet */
+/* Primary buttons */
 .bg-\[\#2f80ed\] {
   background-color: #6d5dfc !important;
 }
@@ -123,7 +119,7 @@ button {
   background-color: #5747e8 !important;
 }
 
-/* Navy backgrounds → indigo */
+/* Dark sections */
 .bg-\[\#183153\] {
   background-color: #1e1b4b !important;
 }
@@ -132,22 +128,21 @@ button {
   background-color: #14112f !important;
 }
 
-/* Main dark text → indigo */
+/* Headings */
 .text-\[\#183153\] {
   color: #1e1b4b !important;
 }
 
-/* Primary blue text → violet */
+/* Accent text */
 .text-\[\#2f80ed\] {
   color: #6d5dfc !important;
 }
 
-/* Hover text */
 .hover\:text-\[\#2f80ed\]:hover {
   color: #6d5dfc !important;
 }
 
-/* Hero light blue → warm cream/lavender */
+/* Hero background */
 .from-\[\#eef6ff\] {
   --tw-gradient-from: #f5f3ff !important;
 }
@@ -156,17 +151,16 @@ button {
   --tw-gradient-to: #faf9f6 !important;
 }
 
-/* Light blue cards → lavender */
+/* Lavender cards */
 .bg-\[\#eaf3ff\] {
   background-color: #eeeafe !important;
 }
 
-/* Pale blue sections → soft lavender */
 .bg-\[\#f7faff\] {
   background-color: #f5f3ff !important;
 }
 
-/* Light text accent */
+/* Blue utility replacements */
 .text-blue-200 {
   color: #c7c1ff !important;
 }
@@ -175,7 +169,6 @@ button {
   color: rgba(231, 228, 255, 0.8) !important;
 }
 
-/* Blue borders */
 .border-blue-100 {
   border-color: #e4e0ff !important;
 }
@@ -189,7 +182,6 @@ button {
   border-color: #b9afff !important;
 }
 
-/* Light blue backgrounds */
 .bg-blue-50 {
   background-color: #f5f3ff !important;
 }
@@ -202,12 +194,11 @@ button {
   background-color: #f5f3ff !important;
 }
 
-/* Blue rings */
 .hover\:ring-blue-200:hover {
   --tw-ring-color: #d6d0ff !important;
 }
 
-/* Various gradient colors used in cards */
+/* Card gradients */
 .from-blue-100 {
   --tw-gradient-from: #eeeafe !important;
 }
@@ -216,19 +207,15 @@ button {
   --tw-gradient-to: #dcd6ff !important;
 }
 
-/* Footer and CTA violet glow */
+/* CTA glow */
 .bg-\[\#2f80ed\].opacity-30 {
   background-color: #6d5dfc !important;
 }
 
-/* Shadow color adjustments */
+/* Hero shadow */
 .shadow-\[0_20px_60px_-25px_rgba\(25\,70\,120\,\.35\)\] {
   box-shadow: 0 20px 60px -25px rgba(80, 65, 180, 0.3) !important;
 }
-
-/* ------------------------------
-   RESPONSIVE
--------------------------------- */
 
 @media (max-width: 640px) {
   .agla-grid {
