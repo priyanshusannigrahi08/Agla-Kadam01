@@ -237,3 +237,46 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+.agla-input {
+  width: 100%;
+  border: 1px solid #e8e5e0;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #18181b;
+  padding: 0.875rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.agla-input::placeholder {
+  color: #a09baa;
+}
+
+.agla-input:hover {
+  border-color: #d6d0df;
+}
+
+.agla-input:focus {
+  border-color: #6d5dfc;
+  box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.12);
+}
+
+.agla-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+textarea.agla-input {
+  min-height: 7rem;
+}
+
+select.agla-input {
+  cursor: pointer;
+}
