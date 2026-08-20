@@ -111,7 +111,7 @@ export default function Home() {
       <footer className="mx-auto max-w-5xl px-6 py-8">
         <p className="font-mono text-xs text-ink/40">
           AglaKadam — built in the open.{" "}
-          <a
+          
             href="https://github.com/"
             className="underline hover:text-ink/70"
           >
@@ -142,4 +142,3 @@ function NoteCard({
     </div>
   );
 }
-
