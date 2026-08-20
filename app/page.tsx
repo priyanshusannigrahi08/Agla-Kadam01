@@ -42,6 +42,13 @@ export default function Home() {
               Offer to mentor someone
             </Link>
           </div>
+
+          <Link
+            href="/mentors"
+            className="inline-block mt-6 font-mono text-xs uppercase tracking-[0.15em] text-sage hover:text-chalk underline underline-offset-4"
+          >
+            Or browse mentors directly →
+          </Link>
         </div>
       </section>
 
@@ -135,3 +142,4 @@ function NoteCard({
     </div>
   );
 }
+
