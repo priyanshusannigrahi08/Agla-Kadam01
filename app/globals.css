@@ -1,9 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
-  color-scheme: light;
+  --background: #fbfcfe;
+  --foreground: #0f172a;
+
+  --primary: #2f80ed;
+  --primary-dark: #176bd2;
+
+  --navy: #183153;
+  --navy-dark: #10243d;
+
+  --muted: #64748b;
+  --border: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html {
@@ -11,70 +23,110 @@ html {
 }
 
 body {
-  background-color: #f6f4ee;
-  color: #17221c;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Visible keyboard focus everywhere, always */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid #e2a63b;
+button,
+a,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: #bfdbfe;
+  color: #183153;
+}
+
+/* Custom display font utility used in app/page.tsx */
+.font-display {
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+}
+
+/* Background grid used in the hero section */
+.agla-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(47, 128, 237, 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(47, 128, 237, 0.08) 1px,
+      transparent 1px
+    );
+
+  background-size: 48px 48px;
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.75),
+    transparent 90%
+  );
+}
+
+/* Better focus states for accessibility */
+:focus-visible {
+  outline: 3px solid rgba(47, 128, 237, 0.35);
   outline-offset: 3px;
-  border-radius: 2px;
 }
 
-/* Respect reduced motion */
+/* Smooth transitions for interactive elements */
+a,
+button {
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* Prevent horizontal scrolling */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Improve mobile text rendering */
+@media (max-width: 640px) {
+  .agla-grid {
+    background-size: 32px 32px;
+  }
+}
+
+/* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
-}
-
-.pin-shadow {
-  box-shadow: 0 18px 30px -14px rgba(23, 34, 28, 0.35);
-}
-
-.pin-dot::before {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
-  border-radius: 9999px;
-  background: #e2a63b;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
-}
-
-.cork-texture {
-  background-image: radial-gradient(circle at 1px 1px, rgba(246, 244, 238, 0.07) 1px, transparent 0);
-  background-size: 18px 18px;
-}
-
-.input {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1px solid rgba(23, 34, 28, 0.15);
-  border-radius: 2px;
-  padding: 0.75rem 1rem;
-  font-family: var(--font-inter), sans-serif;
-  font-size: 0.95rem;
-  color: #17221c;
-}
-
-.input:focus {
-  border-color: #e2a63b;
-}
-
-.input::placeholder {
-  color: rgba(23, 34, 28, 0.35);
 }
