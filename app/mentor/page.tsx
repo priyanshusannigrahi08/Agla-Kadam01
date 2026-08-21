@@ -53,13 +53,11 @@ export default function MentorPage() {
       name,
       email,
       linkedin,
-      calendly,
+      calendly: calendly || null,
       expertise,
-      availability: experience,
-      background: `${journey}
-
-Why I want to mentor:
-${whyMentor}`,
+      experience,
+      journey,
+      why_mentor: whyMentor,
     });
 
     setSubmitting(false);
@@ -68,7 +66,7 @@ ${whyMentor}`,
       console.error(insertError);
 
       setError(
-        "Something went wrong while submitting your profile. Please try again."
+        "Something went wrong while submitting your mentor profile. Please try again."
       );
 
       return;
@@ -80,15 +78,13 @@ ${whyMentor}`,
   return (
     <main className="min-h-screen bg-[#FAF9F6] text-[#29263D]">
       {/* HEADER */}
-
       <header className="border-b border-[#E8E5E0] bg-white">
         <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6 lg:px-8">
           <Link
             href="/"
             className="text-2xl font-bold tracking-tight text-[#211E4B]"
           >
-            Agla
-            <span className="text-[#6657E8]">Kadam</span>
+            Agla<span className="text-[#6657E8]">Kadam</span>
           </Link>
 
           <Link
@@ -101,7 +97,6 @@ ${whyMentor}`,
       </header>
 
       {/* HERO */}
-
       <section className="border-b border-[#E8E5E0] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#6657E8]">
@@ -131,13 +126,11 @@ ${whyMentor}`,
         </div>
       </section>
 
-      {/* MAIN FORM SECTION */}
-
+      {/* FORM SECTION */}
       <section id="mentor-form" className="bg-[#FAF9F6]">
         <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
           <div className="grid gap-14 lg:grid-cols-[0.8fr_1.2fr]">
             {/* LEFT SIDE */}
-
             <div className="lg:sticky lg:top-24 lg:h-fit">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6657E8]">
                 Why mentor?
@@ -154,61 +147,27 @@ ${whyMentor}`,
               </p>
 
               <div className="mt-10 space-y-7">
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
-                    01
-                  </div>
+                <Info
+                  number="01"
+                  title="Share what you learned"
+                  text="Share your experiences, mistakes, achievements, and lessons from your journey."
+                />
 
-                  <div>
-                    <h3 className="font-semibold text-[#211E4B]">
-                      Share what you learned
-                    </h3>
+                <Info
+                  number="02"
+                  title="Help someone find clarity"
+                  text="A conversation with the right person can make a confusing decision feel much clearer."
+                />
 
-                    <p className="mt-1 text-sm leading-6 text-[#777180]">
-                      Share your experiences, mistakes, achievements, and
-                      lessons from your journey.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
-                    02
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-[#211E4B]">
-                      Help someone find clarity
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-[#777180]">
-                      A conversation with the right person can make a confusing
-                      decision feel much clearer.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
-                    03
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-[#211E4B]">
-                      Make an impact
-                    </h3>
-
-                    <p className="mt-1 text-sm leading-6 text-[#777180]">
-                      Your story could give someone the confidence to take
-                      their next step.
-                    </p>
-                  </div>
-                </div>
+                <Info
+                  number="03"
+                  title="Make an impact"
+                  text="Your story could give someone the confidence to take their next step."
+                />
               </div>
             </div>
 
             {/* FORM CARD */}
-
             <div className="rounded-3xl border border-[#E6E2DC] bg-white p-7 shadow-[0_25px_70px_-35px_rgba(30,25,70,0.3)] sm:p-10">
               <div className="mb-10">
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6657E8]">
@@ -227,95 +186,60 @@ ${whyMentor}`,
 
               <form onSubmit={handleSubmit} className="space-y-7">
                 {/* NAME + EMAIL */}
-
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="w-full">
-                    <label
-                      htmlFor="name"
-                      className="mb-3 block text-base font-semibold text-[#363248]"
-                    >
-                      Your name
-                    </label>
+                  <FormInput
+                    id="name"
+                    name="name"
+                    label="Your name"
+                    type="text"
+                    placeholder="Your full name"
+                    required
+                  />
 
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      required
-                      placeholder="Your full name"
-                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
-                    />
-                  </div>
-
-                  <div className="w-full">
-                    <label
-                      htmlFor="email"
-                      className="mb-3 block text-base font-semibold text-[#363248]"
-                    >
-                      Email address
-                    </label>
-
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      placeholder="you@example.com"
-                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
-                    />
-                  </div>
+                  <FormInput
+                    id="email"
+                    name="email"
+                    label="Email address"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
 
                 {/* LINKEDIN + CALENDLY */}
-
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="w-full">
-                    <label
-                      htmlFor="linkedin"
-                      className="mb-3 block text-base font-semibold text-[#363248]"
-                    >
-                      LinkedIn profile
-                    </label>
-
-                    <input
+                  <div>
+                    <FormInput
                       id="linkedin"
                       name="linkedin"
+                      label="LinkedIn profile"
                       type="url"
-                      required
                       placeholder="https://linkedin.com/in/your-profile"
-                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+                      required
                     />
 
-                    <p className="mt-2 text-sm leading-5 text-[#8A8491]">
+                    <p className="mt-2 text-sm text-[#8A8491]">
                       Helps mentees learn more about your background.
                     </p>
                   </div>
 
-                  <div className="w-full">
-                    <label
-                      htmlFor="calendly"
-                      className="mb-3 block text-base font-semibold text-[#363248]"
-                    >
-                      Calendly booking link
-                    </label>
-
-                    <input
+                  <div>
+                    <FormInput
                       id="calendly"
                       name="calendly"
+                      label="Calendly booking link"
                       type="url"
                       placeholder="https://calendly.com/your-name"
-                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
                     />
 
-                    <p className="mt-2 text-sm leading-5 text-[#8A8491]">
+                    <p className="mt-2 text-sm text-[#8A8491]">
                       Optional. Mentees can use this link to book a session.
                     </p>
                   </div>
                 </div>
 
                 {/* EXPERTISE */}
-
-                <div className="w-full">
+                <div>
                   <label
                     htmlFor="expertise"
                     className="mb-3 block text-base font-semibold text-[#363248]"
@@ -323,7 +247,7 @@ ${whyMentor}`,
                     What area do you have experience in?
                   </label>
 
-                  <div className="relative w-full">
+                  <div className="relative">
                     <select
                       id="expertise"
                       name="expertise"
@@ -349,8 +273,7 @@ ${whyMentor}`,
                 </div>
 
                 {/* EXPERIENCE */}
-
-                <div className="w-full">
+                <div>
                   <label
                     htmlFor="experience"
                     className="mb-3 block text-base font-semibold text-[#363248]"
@@ -358,7 +281,7 @@ ${whyMentor}`,
                     How much professional experience do you have?
                   </label>
 
-                  <div className="relative w-full">
+                  <div className="relative">
                     <select
                       id="experience"
                       name="experience"
@@ -384,8 +307,7 @@ ${whyMentor}`,
                 </div>
 
                 {/* JOURNEY */}
-
-                <div className="w-full">
+                <div>
                   <label
                     htmlFor="journey"
                     className="mb-3 block text-base font-semibold text-[#363248]"
@@ -404,8 +326,7 @@ ${whyMentor}`,
                 </div>
 
                 {/* WHY MENTOR */}
-
-                <div className="w-full">
+                <div>
                   <label
                     htmlFor="why_mentor"
                     className="mb-3 block text-base font-semibold text-[#363248]"
@@ -423,8 +344,6 @@ ${whyMentor}`,
                   />
                 </div>
 
-                {/* ERROR */}
-
                 {error && (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
                     {error}
@@ -432,7 +351,6 @@ ${whyMentor}`,
                 )}
 
                 {/* SUBMIT */}
-
                 <div className="border-t border-[#E8E5E0] pt-7">
                   <button
                     type="submit"
@@ -456,7 +374,6 @@ ${whyMentor}`,
       </section>
 
       {/* BOTTOM CTA */}
-
       <section className="bg-[#211E4B]">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-6 py-16 lg:flex-row lg:items-center lg:px-8">
           <div>
@@ -483,5 +400,65 @@ ${whyMentor}`,
         </div>
       </section>
     </main>
+  );
+}
+
+function FormInput({
+  id,
+  name,
+  label,
+  type,
+  placeholder,
+  required = false,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
+  placeholder: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="w-full">
+      <label
+        htmlFor={id}
+        className="mb-3 block text-base font-semibold text-[#363248]"
+      >
+        {label}
+      </label>
+
+      <input
+        id={id}
+        name={name}
+        type={type}
+        required={required}
+        placeholder={placeholder}
+        className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+      />
+    </div>
+  );
+}
+
+function Info({
+  number,
+  title,
+  text,
+}: {
+  number: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-4">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
+        {number}
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-[#211E4B]">{title}</h3>
+
+        <p className="mt-1 text-sm leading-6 text-[#777180]">{text}</p>
+      </div>
+    </div>
   );
 }
