@@ -1,91 +1,37 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const situations = [
-  { value: "", label: "Choose the situation closest to yours" },
-  { value: "student", label: "Student" },
-  { value: "recent-graduate", label: "Recent graduate" },
-  { value: "working-professional", label: "Working professional" },
-  { value: "career-switcher", label: "Career switcher" },
-  { value: "entrepreneur", label: "Entrepreneur / founder" },
-  { value: "feeling-stuck", label: "Feeling stuck / unsure" },
-];
-
-const helpAreas = [
-  { value: "", label: "Choose what you need help with" },
-  { value: "career-direction", label: "Career direction" },
-  { value: "higher-studies", label: "Higher studies" },
-  { value: "job-search", label: "Job search" },
-  { value: "career-switch", label: "Career switch" },
-  { value: "starting-business", label: "Starting a business" },
-  { value: "skills-technology", label: "Skills / technology" },
-  {
-    value: "marketing-business-growth",
-    label: "Marketing / business growth",
-  },
-  { value: "something-else", label: "Something else" },
-];
-
-export default function MenteePage() {
+function MenteeForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialStage = searchParams.get("stage") || "";
-  const initialArea = searchParams.get("area") || "";
+  const initialSituation = searchParams.get("situation") || "";
+  const initialNeed = searchParams.get("need") || "";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-
-  const [situation, setSituation] = useState(initialStage);
-  const [helpArea, setHelpArea] = useState(initialArea);
-
+  const [situation, setSituation] = useState(initialSituation);
   const [background, setBackground] = useState("");
   const [stuckOn, setStuckOn] = useState("");
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [need, setNeed] = useState(initialNeed);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
     setError("");
-    setSubmitted(false);
 
-    if (!name.trim()) {
-      setError("Please enter your name.");
+    if (!name.trim() || !email.trim() || !situation || !background.trim() || !stuckOn.trim()) {
+      setError("Please fill in all the required fields.");
       return;
     }
 
-    if (!email.trim()) {
-      setError("Please enter your email address.");
-      return;
-    }
-
-    if (!situation) {
-      setError("Please choose the situation that fits you best.");
-      return;
-    }
-
-    if (!helpArea) {
-      setError("Please choose what you need help with.");
-      return;
-    }
-
-    if (!background.trim()) {
-      setError("Please tell us a little about your background.");
-      return;
-    }
-
-    if (!stuckOn.trim()) {
-      setError("Please tell us what you are currently stuck on.");
-      return;
-    }
+    setLoading(true);
 
     try {
-      setIsSubmitting(true);
-
       const response = await fetch("/api/mentees", {
         method: "POST",
         headers: {
@@ -95,196 +41,180 @@ export default function MenteePage() {
           name,
           email,
           situation,
-          helpArea,
           background,
-          stuckOn,
+          stuck_on: stuckOn,
+          help_needed: need,
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(
-          data?.error ||
-            "Something went wrong while submitting your information."
-        );
+        throw new Error("Failed to submit form");
       }
 
-      setSubmitted(true);
-
-      setName("");
-      setEmail("");
-      setSituation("");
-      setHelpArea("");
-      setBackground("");
-      setStuckOn("");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again."
+      router.push(
+        `/matches?situation=${encodeURIComponent(
+          situation
+        )}&need=${encodeURIComponent(need)}`
       );
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <main className="mentee-page">
-      <section className="form-hero">
-        <div className="form-container">
+      <section className="mentee-container">
+        <div className="mentee-header">
           <p className="eyebrow">STEP 1 OF 1</p>
 
           <h1>Start with your story</h1>
 
-          <p className="form-intro">
+          <p className="mentee-intro">
             The more specific you are, the easier it is to understand who might
             be useful for you to talk to.
           </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="mentee-form">
-            {/* NAME + EMAIL */}
+        <form className="mentee-form" onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="field-group">
+              <label htmlFor="name">Your name</label>
 
-            <div className="form-grid two-columns">
-              <div className="form-field">
-                <label htmlFor="name">Your name</label>
-
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Your full name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="email">Email address</label>
-
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* SITUATION */}
-
-            <div className="form-field">
-              <label htmlFor="situation">
-                Which of these fits you best?
-              </label>
-
-              <select
-                id="situation"
-                value={situation}
-                onChange={(event) =>
-                  setSituation(event.target.value)
-                }
-              >
-                {situations.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* HELP AREA */}
-
-            <div className="form-field">
-              <label htmlFor="help-area">
-                What do you need help with?
-              </label>
-
-              <select
-                id="help-area"
-                value={helpArea}
-                onChange={(event) =>
-                  setHelpArea(event.target.value)
-                }
-              >
-                {helpAreas.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* BACKGROUND */}
-
-            <div className="form-field">
-              <label htmlFor="background">
-                Your background
-              </label>
-
-              <textarea
-                id="background"
-                placeholder="Tell us about your degree, field, work experience, projects, or anything else that helps explain where you are coming from."
-                value={background}
-                onChange={(event) =>
-                  setBackground(event.target.value)
-                }
+              <input
+                id="name"
+                type="text"
+                placeholder="Your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
 
-            {/* WHAT ARE YOU STUCK ON */}
+            <div className="field-group">
+              <label htmlFor="email">Email address</label>
 
-            <div className="form-field">
-              <label htmlFor="stuck-on">
-                What are you actually stuck on?
-              </label>
-
-              <textarea
-                id="stuck-on"
-                placeholder="Be specific. For example: 'I am considering an MBA but I don't know if it makes sense for my marketing career.'"
-                value={stuckOn}
-                onChange={(event) =>
-                  setStuckOn(event.target.value)
-                }
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+          </div>
 
-            {/* ERROR */}
+          <div className="field-group">
+            <label htmlFor="situation">Which of these fits you best?</label>
 
-            {error && (
-              <div className="form-message form-error">
-                {error}
-              </div>
-            )}
+            <select
+              id="situation"
+              value={situation}
+              onChange={(e) => setSituation(e.target.value)}
+            >
+              <option value="">Choose the situation closest to yours</option>
+              <option value="student">I am a student</option>
+              <option value="college">I am choosing or navigating college</option>
+              <option value="career-start">I am starting my career</option>
+              <option value="career-change">I am considering a career change</option>
+              <option value="job-search">I am looking for a job</option>
+              <option value="higher-studies">
+                I am considering higher studies
+              </option>
+              <option value="business">
+                I am building or exploring a business
+              </option>
+              <option value="personal-growth">
+                I am looking for personal guidance
+              </option>
+              <option value="other">Something else</option>
+            </select>
+          </div>
 
-            {/* SUCCESS */}
+          <div className="field-group">
+            <label htmlFor="background">Your background</label>
 
-            {submitted && (
-              <div className="form-message form-success">
-                Your information has been submitted successfully. We&apos;ll use
-                it to help find a relevant mentor connection.
-              </div>
-            )}
+            <textarea
+              id="background"
+              placeholder="Tell us about your degree, field, work, projects, or anything else that helps explain where you are coming from."
+              value={background}
+              onChange={(e) => setBackground(e.target.value)}
+            />
+          </div>
 
-            <div className="form-submit-area">
-              <button
-                type="submit"
-                className="submit-button"
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Submitting..."
-                  : "Submit and continue →"}
-              </button>
+          <div className="field-group">
+            <label htmlFor="stuckOn">What are you actually stuck on?</label>
 
-              <p>
-                This information is used to understand your situation and help
-                make a relevant mentor connection.
-              </p>
-            </div>
-          </form>
+            <textarea
+              id="stuckOn"
+              placeholder="Be specific. For example: 'I am considering an MBA but I don't know if it makes sense for my marketing career.'"
+              value={stuckOn}
+              onChange={(e) => setStuckOn(e.target.value)}
+            />
+          </div>
+
+          <div className="field-group">
+            <label htmlFor="need">What do you need help with?</label>
+
+            <select
+              id="need"
+              value={need}
+              onChange={(e) => setNeed(e.target.value)}
+            >
+              <option value="">Choose what you need help with</option>
+              <option value="career">Career guidance</option>
+              <option value="studies">Education and higher studies</option>
+              <option value="switching">Career switching</option>
+              <option value="job">Job search and applications</option>
+              <option value="skills">Skills and professional growth</option>
+              <option value="business">Business or entrepreneurship</option>
+              <option value="personal">Personal direction and decision-making</option>
+              <option value="other">Something else</option>
+            </select>
+          </div>
+
+          {error && <p className="form-error">{error}</p>}
+
+          <div className="form-footer">
+            <button
+              type="submit"
+              className="primary-button"
+              disabled={loading}
+            >
+              {loading ? "Finding your mentor..." : "Submit and continue →"}
+            </button>
+
+            <p>
+              This information is used to understand your situation and help
+              make a relevant mentor connection.
+            </p>
+          </div>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function MenteeLoading() {
+  return (
+    <main className="mentee-page">
+      <section className="mentee-container">
+        <div className="mentee-header">
+          <p className="eyebrow">AGLA KADAM</p>
+          <h1>Preparing your journey...</h1>
+          <p className="mentee-intro">
+            Just a moment while we prepare your form.
+          </p>
         </div>
       </section>
     </main>
+  );
+}
+
+export default function MenteePage() {
+  return (
+    <Suspense fallback={<MenteeLoading />}>
+      <MenteeForm />
+    </Suspense>
   );
 }
