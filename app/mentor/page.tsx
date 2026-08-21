@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,13 +16,6 @@ const EXPERTISE_AREAS = [
   "Law",
   "Career Development",
   "Other",
-];
-
-const EXPERIENCE_LEVELS = [
-  "1–3 years",
-  "3–5 years",
-  "5–10 years",
-  "10+ years",
 ];
 
 export default function MentorPage() {
@@ -42,10 +35,10 @@ export default function MentorPage() {
     const payload = {
       name: form.get("name") as string,
       email: form.get("email") as string,
+      linkedin_url: form.get("linkedin_url") as string,
       expertise: form.get("expertise") as string,
-      experience: form.get("experience") as string,
-      background: form.get("background") as string,
-      why_mentor: form.get("why_mentor") as string,
+      availability: form.get("availability") as string,
+      calendly_url: form.get("calendly_url") as string,
     };
 
     const { error: insertError } = await supabase
@@ -85,7 +78,7 @@ export default function MentorPage() {
       </header>
 
       {/* HERO */}
-      <section className="relative border-b border-[#E8E5E0] bg-white">
+      <section className="relative overflow-hidden border-b border-[#E8E5E0] bg-white">
         <div className="absolute inset-0 agla-grid opacity-30" />
 
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
@@ -96,14 +89,15 @@ export default function MentorPage() {
 
             <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-[#1E1B4B] sm:text-6xl lg:text-7xl">
               Someone is standing where{" "}
-              <span className="text-[#6D5DFC]">you once stood.</span>
+              <span className="text-[#6D5DFC]">
+                you once stood.
+              </span>
             </h1>
 
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[#6B6878] sm:text-xl">
-              You do not need to be a celebrity, founder, or industry expert.
-              If you have made decisions, changed direction, learned from
-              mistakes, or built experience, your story could help someone
-              take their next step.
+              You don&apos;t need to be a professional coach. If you&apos;ve
+              navigated a career, education, or life decision, your experience
+              could help someone facing a similar next step.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
@@ -123,37 +117,37 @@ export default function MentorPage() {
             </div>
           </div>
 
-          {/* QUICK CARDS */}
+          {/* THREE STEPS */}
           <div className="mt-16 grid gap-4 sm:grid-cols-3">
             <InfoCard
               number="01"
               title="Share your experience"
-              text="Tell us about your career, skills, journey, or lessons you've learned."
+              text="Tell us about your expertise, background, and the kind of guidance you can offer."
             />
 
             <InfoCard
               number="02"
-              title="We understand your strengths"
-              text="Your background helps us understand who you may be able to help."
+              title="Set your availability"
+              text="Let people know when you are generally available for conversations."
             />
 
             <InfoCard
               number="03"
               title="Help someone move forward"
-              text="Have meaningful conversations with people facing decisions you've already navigated."
+              text="Share your booking link and have meaningful conversations with people."
             />
           </div>
         </div>
       </section>
 
-      {/* FORM SECTION */}
+      {/* FORM */}
       <section
         id="mentor-form"
         className="relative bg-[#FAF9F6]"
       >
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            {/* LEFT */}
+            {/* LEFT SIDE */}
             <div className="lg:sticky lg:top-24">
               <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6D5DFC]">
                 Join the community
@@ -161,7 +155,9 @@ export default function MentorPage() {
 
               <h2 className="mt-4 font-display text-4xl font-semibold leading-tight tracking-tight text-[#1E1B4B] sm:text-5xl">
                 Your experience has{" "}
-                <span className="text-[#6D5DFC]">value.</span>
+                <span className="text-[#6D5DFC]">
+                  value.
+                </span>
               </h2>
 
               <p className="mt-5 max-w-lg text-base leading-7 text-[#6B6878] sm:text-lg">
@@ -169,28 +165,28 @@ export default function MentorPage() {
                 what it felt like to be at the beginning.
               </p>
 
-              <div className="mt-10 space-y-5">
+              <div className="mt-10 space-y-6">
                 <Benefit
-                  icon="↗"
+                  number="01"
                   title="Share real experience"
-                  text="Talk about what actually worked, what didn't, and what you learned."
+                  text="Talk about what worked, what didn't, and what you learned along the way."
                 />
 
                 <Benefit
-                  icon="◎"
-                  title="Make a meaningful impact"
-                  text="A single conversation can give someone clarity and confidence."
+                  number="02"
+                  title="Make an impact"
+                  text="One useful conversation can give someone clarity and confidence."
                 />
 
                 <Benefit
-                  icon="∞"
-                  title="No need to have all the answers"
-                  text="You are sharing your perspective, not solving someone's entire life."
+                  number="03"
+                  title="No need for perfect answers"
+                  text="You're sharing your perspective and experience, not solving someone's entire life."
                 />
               </div>
             </div>
 
-            {/* FORM */}
+            {/* FORM CARD */}
             <div className="rounded-3xl border border-[#E8E5E0] bg-white p-6 shadow-[0_24px_70px_-30px_rgba(45,35,100,0.22)] sm:p-10">
               <div className="mb-10">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6D5DFC]">
@@ -202,8 +198,8 @@ export default function MentorPage() {
                 </h2>
 
                 <p className="mt-3 text-sm leading-6 text-[#6B6878] sm:text-base">
-                  This helps us understand your experience and the kinds of
-                  people you may be able to guide.
+                  This information helps us understand your experience and how
+                  you may be able to help someone.
                 </p>
               </div>
 
@@ -211,12 +207,8 @@ export default function MentorPage() {
                 onSubmit={handleSubmit}
                 className="space-y-7"
               >
-                {/* NAME + EMAIL */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Your name"
-                    htmlFor="name"
-                  >
+                  <Field label="Your name" htmlFor="name">
                     <input
                       id="name"
                       name="name"
@@ -227,10 +219,7 @@ export default function MentorPage() {
                     />
                   </Field>
 
-                  <Field
-                    label="Email address"
-                    htmlFor="email"
-                  >
+                  <Field label="Email address" htmlFor="email">
                     <input
                       id="email"
                       name="email"
@@ -242,7 +231,20 @@ export default function MentorPage() {
                   </Field>
                 </div>
 
-                {/* EXPERTISE */}
+                <Field
+                  label="LinkedIn profile"
+                  htmlFor="linkedin_url"
+                >
+                  <input
+                    id="linkedin_url"
+                    name="linkedin_url"
+                    type="url"
+                    required
+                    placeholder="https://linkedin.com/in/your-profile"
+                    className="agla-input"
+                  />
+                </Field>
+
                 <Field
                   label="What area do you have experience in?"
                   htmlFor="expertise"
@@ -255,104 +257,62 @@ export default function MentorPage() {
                       defaultValue=""
                       className="agla-select"
                     >
-                      <option
-                        value=""
-                        disabled
-                      >
+                      <option value="" disabled>
                         Choose the area closest to your experience
                       </option>
 
                       {EXPERTISE_AREAS.map((area) => (
-                        <option
-                          key={area}
-                          value={area}
-                        >
+                        <option key={area} value={area}>
                           {area}
                         </option>
                       ))}
                     </select>
 
-                    <span className="agla-select-arrow">↓</span>
+                    <span className="agla-select-arrow">
+                      ↓
+                    </span>
                   </div>
                 </Field>
 
-                {/* EXPERIENCE */}
                 <Field
-                  label="How much professional experience do you have?"
-                  htmlFor="experience"
+                  label="Rough availability"
+                  htmlFor="availability"
                 >
-                  <div className="agla-select-wrapper">
-                    <select
-                      id="experience"
-                      name="experience"
-                      required
-                      defaultValue=""
-                      className="agla-select"
-                    >
-                      <option
-                        value=""
-                        disabled
-                      >
-                        Select your experience level
-                      </option>
-
-                      {EXPERIENCE_LEVELS.map((level) => (
-                        <option
-                          key={level}
-                          value={level}
-                        >
-                          {level}
-                        </option>
-                      ))}
-                    </select>
-
-                    <span className="agla-select-arrow">↓</span>
-                  </div>
-                </Field>
-
-                {/* BACKGROUND */}
-                <Field
-                  label="Tell us about your journey"
-                  htmlFor="background"
-                >
-                  <textarea
-                    id="background"
-                    name="background"
+                  <input
+                    id="availability"
+                    name="availability"
+                    type="text"
                     required
-                    rows={6}
-                    placeholder="Tell us about your education, career, work, projects, achievements, career changes, or experiences that have shaped your journey."
-                    className="agla-textarea"
+                    placeholder="For example: Weekday evenings, IST"
+                    className="agla-input"
                   />
                 </Field>
 
-                {/* WHY MENTOR */}
                 <Field
-                  label="Why would you like to mentor someone?"
-                  htmlFor="why_mentor"
+                  label="Your booking link"
+                  htmlFor="calendly_url"
                 >
-                  <textarea
-                    id="why_mentor"
-                    name="why_mentor"
+                  <input
+                    id="calendly_url"
+                    name="calendly_url"
+                    type="url"
                     required
-                    rows={5}
-                    placeholder="What would you like to share? What kind of people or situations do you think you could help with?"
-                    className="agla-textarea"
+                    placeholder="https://calendly.com/your-link"
+                    className="agla-input"
                   />
                 </Field>
 
-                {/* ERROR */}
                 {error && (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {error}
                   </div>
                 )}
 
-                {/* SUBMIT */}
                 <div className="border-t border-[#E8E5E0] pt-7">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex min-h-[54px] items-center justify-center rounded-xl bg-[#6D5DFC] px-8 py-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(109,93,252,0.22)] transition hover:-translate-y-0.5 hover:bg-[#5747E8] hover:shadow-[0_14px_35px_rgba(109,93,252,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-[54px] items-center justify-center rounded-xl bg-[#6D5DFC] px-8 py-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(109,93,252,0.22)] transition hover:-translate-y-0.5 hover:bg-[#5747E8] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting
                       ? "Submitting your profile..."
@@ -384,8 +344,8 @@ export default function MentorPage() {
             </h2>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#C9C6D9] sm:text-base">
-              Tell us where you are and what feels unclear. Your next
-              conversation might help you see the next step.
+              Tell us where you are and what feels unclear. A conversation
+              with someone experienced might help you see your next step.
             </p>
           </div>
 
@@ -408,7 +368,7 @@ function Field({
 }: {
   label: string;
   htmlFor: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="w-full min-w-0">
@@ -451,18 +411,18 @@ function InfoCard({
 }
 
 function Benefit({
-  icon,
+  number,
   title,
   text,
 }: {
-  icon: string;
+  number: string;
   title: string;
   text: string;
 }) {
   return (
     <div className="flex gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEEAFE] text-lg font-bold text-[#6D5DFC]">
-        {icon}
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEEAFE] text-sm font-bold text-[#6D5DFC]">
+        {number}
       </div>
 
       <div>
