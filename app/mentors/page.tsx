@@ -1,128 +1,138 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
 
 type Mentor = {
   id: string;
   name: string;
-  linkedin_url: string;
-  expertise: string;
-  availability: string;
-  calendly_url: string;
+  headline: string | null;
+  company: string | null;
+  role: string | null;
+  experience: number | null;
+  expertise: string | null;
+  bio: string | null;
+  linkedin: string | null;
+  calendly: string | null;
 };
 
-export default function MentorDirectory() {
+export default function MentorsPage() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
 
   useEffect(() => {
     async function loadMentors() {
-      const { data, error: fetchError } = await supabase
-        .from("mentors_public")
-        .select("id, name, linkedin_url, expertise, availability, calendly_url")
-        .order("name", { ascending: true });
+      try {
+        const response = await fetch("/api/mentors");
 
-      if (fetchError) {
-        setError("Couldn't load mentors right now. Try refreshing.");
-      } else {
-        setMentors(data ?? []);
+        if (!response.ok) {
+          throw new Error("Unable to load mentors");
+        }
+
+        const data = await response.json();
+
+        setMentors(data.mentors || []);
+      } catch {
+        setMentors([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     loadMentors();
   }, []);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return mentors;
-    const q = query.toLowerCase();
-    return mentors.filter(
-      (m) => m.name.toLowerCase().includes(q) || m.expertise.toLowerCase().includes(q)
-    );
-  }, [mentors, query]);
-
   return (
-    <main className="min-h-screen bg-paper text-ink">
-      <div className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
-        <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">
-          ← Back to AglaKadam
-        </Link>
+    <main className="mentors-page">
+      <section className="mentors-hero">
+        <p className="eyebrow">PEOPLE WHO&apos;VE BEEN THERE</p>
 
-        <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">Browse mentors</h1>
-        <p className="text-ink/70 mb-8 max-w-lg">
-          Search by name or what someone knows. Book directly — no form, no
-          waiting on a match.
+        <h1>
+          Find someone whose
+          <br />
+          experience speaks to you.
+        </h1>
+
+        <p>
+          Explore mentors and learn from people who have navigated careers,
+          transitions and challenges of their own.
         </p>
+      </section>
 
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search e.g. “product management” or “switched careers”"
-          className="input mb-10 max-w-xl"
-          aria-label="Search mentors"
-        />
+      <section className="mentors-list-section">
+        {loading ? (
+          <div className="empty-state">
+            <p>Loading mentors...</p>
+          </div>
+        ) : mentors.length === 0 ? (
+          <div className="empty-state">
+            <h2>We&apos;re growing our mentor community.</h2>
 
-        {loading && <p className="font-mono text-sm text-ink/50">Loading mentors…</p>}
-
-        {error && <p className="text-sm text-red-700">{error}</p>}
-
-        {!loading && !error && filtered.length === 0 && (
-          <div className="bg-white rounded-sm border border-ink/10 p-8 pin-shadow max-w-xl">
-            <p className="font-body text-ink/70">
-              {mentors.length === 0
-                ? "No mentors listed yet — check back soon, or "
-                : "No mentors match that search — try a different term, or "}
-              <Link href="/mentee" className="underline text-board hover:text-board/70">
-                submit your situation instead
-              </Link>{" "}
-              and we&rsquo;ll match you directly.
+            <p>
+              Tell us what you need help with and we&apos;ll help guide you
+              toward the right next step.
             </p>
+
+            <Link href="/mentee" className="find-mentor-button">
+              Tell us what you need <span>→</span>
+            </Link>
+          </div>
+        ) : (
+          <div className="mentor-grid">
+            {mentors.map((mentor) => (
+              <article className="mentor-card" key={mentor.id}>
+                <div className="mentor-avatar">
+                  {mentor.name.charAt(0).toUpperCase()}
+                </div>
+
+                <p className="mentor-expertise">
+                  {mentor.expertise || "Mentor"}
+                </p>
+
+                <h2>{mentor.name}</h2>
+
+                <p className="mentor-headline">
+                  {mentor.headline ||
+                    mentor.role ||
+                    "Experienced professional"}
+                </p>
+
+                {mentor.company && (
+                  <p className="mentor-company">{mentor.company}</p>
+                )}
+
+                {mentor.bio && (
+                  <p className="mentor-bio">{mentor.bio}</p>
+                )}
+
+                <div className="mentor-actions">
+                  {mentor.linkedin && (
+                    <a
+                      href={mentor.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mentor-link"
+                    >
+                      LinkedIn ↗
+                    </a>
+                  )}
+
+                  {mentor.calendly && (
+                    <a
+                      href={mentor.calendly}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="find-mentor-button small-button"
+                    >
+                      Book a conversation →
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
           </div>
         )}
-
-        <div className="grid sm:grid-cols-2 gap-6">
-          {filtered.map((mentor) => (
-            <MentorCard key={mentor.id} mentor={mentor} />
-          ))}
-        </div>
-      </div>
+      </section>
     </main>
-  );
-}
-
-function MentorCard({ mentor }: { mentor: Mentor }) {
-  return (
-    <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow flex flex-col">
-      <h2 className="font-display text-xl mb-1">{mentor.name}</h2>
-      <p className="font-body text-sm text-ink/70 leading-relaxed mb-4 flex-1">
-        {mentor.expertise}
-      </p>
-      <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink/40 mb-5">
-        {mentor.availability}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <a
-          href={mentor.calendly_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
-        >
-          Book a call
-        </a>
-        <a
-          href={mentor.linkedin_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
-        >
-          LinkedIn
-        </a>
-      </div>
-    </div>
   );
 }
