@@ -22,15 +22,21 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AglaKadam — Find a mentor, book one call",
+  title: "AglaKadam — Find a mentor",
   description:
-    "Agla kadam means 'next step' in Hindi. For college dropouts, final-year students, and career switchers: get matched with a mentor and book a single guidance call. No sign-up fees, no algorithms guessing at you.",
+    "Connect with mentors who have already walked a path similar to the one you are trying to navigate.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}>
+      <body
+        className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      >
         {children}
       </body>
     </html>
