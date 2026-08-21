@@ -30,30 +30,22 @@ const helpAreas = [
 
 export default function HomePage() {
   const router = useRouter();
-
   const [situation, setSituation] = useState("");
   const [helpArea, setHelpArea] = useState("");
 
   function handleFindMentor() {
     const params = new URLSearchParams();
 
-    if (situation) {
-      params.set("stage", situation);
-    }
+    if (situation) params.set("stage", situation);
+    if (helpArea) params.set("area", helpArea);
 
-    if (helpArea) {
-      params.set("area", helpArea);
-    }
+    const query = params.toString();
 
-    const queryString = params.toString();
-
-    router.push(queryString ? `/mentee?${queryString}` : "/mentee");
+    router.push(query ? `/mentee?${query}` : "/mentee");
   }
 
   return (
     <main className="site-shell">
-      {/* HERO */}
-
       <section className="hero-section">
         <div className="hero-inner">
           <div className="hero-copy">
@@ -113,16 +105,13 @@ export default function HomePage() {
               className="find-mentor-button"
               onClick={handleFindMentor}
             >
-              Find my mentor
-              <span>→</span>
+              Find my mentor <span>→</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-
-      <section className="home-section how-it-works">
+      <section className="home-section">
         <div className="section-heading">
           <p className="eyebrow">HOW IT WORKS</p>
 
@@ -133,7 +122,7 @@ export default function HomePage() {
           </h2>
 
           <p>
-            Tell us where you are, what you&apos;re struggling with, and what
+            Tell us where you are, what you&apos;re struggling with and what
             kind of guidance you&apos;re looking for.
           </p>
         </div>
@@ -141,9 +130,7 @@ export default function HomePage() {
         <div className="steps-grid">
           <article className="step-card">
             <span className="step-number">01</span>
-
             <h3>Tell us your story</h3>
-
             <p>
               Share your current situation, background, goals and what you feel
               stuck on.
@@ -152,32 +139,26 @@ export default function HomePage() {
 
           <article className="step-card">
             <span className="step-number">02</span>
-
-            <h3>We find the right fit</h3>
-
+            <h3>Find the right perspective</h3>
             <p>
-              Your information helps us identify mentors whose experience may
-              actually be useful to you.
+              We help connect you with mentors whose experience is relevant to
+              the path you&apos;re trying to navigate.
             </p>
           </article>
 
           <article className="step-card">
             <span className="step-number">03</span>
-
             <h3>Start the conversation</h3>
-
             <p>
-              Explore the connection and take the next step with guidance from
-              someone who understands the journey.
+              Ask questions, get perspective and take your next step with more
+              clarity and confidence.
             </p>
           </article>
         </div>
       </section>
 
-      {/* WHO THIS IS FOR */}
-
       <section className="home-section audience-section">
-        <div className="section-heading audience-heading">
+        <div className="section-heading">
           <p className="eyebrow">WHO IS AGLA KADAM FOR?</p>
 
           <h2>
@@ -201,8 +182,8 @@ export default function HomePage() {
             <span>02</span>
             <h3>Professionals</h3>
             <p>
-              Get perspective on growth, career changes, new opportunities and
-              difficult decisions.
+              Get perspective on growth, difficult decisions and your next
+              career move.
             </p>
           </article>
 
@@ -226,9 +207,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* MENTORS */}
-
-      <section className="home-section mentor-home-section">
+      <section className="mentor-home-section">
         <div className="mentor-home-content">
           <div>
             <p className="eyebrow">FOR MENTORS</p>
@@ -254,14 +233,11 @@ export default function HomePage() {
               className="secondary-button"
               onClick={() => router.push("/mentor")}
             >
-              Become a mentor
-              <span>→</span>
+              Become a mentor <span>→</span>
             </button>
           </div>
         </div>
       </section>
-
-      {/* FINAL CTA */}
 
       <section className="final-cta">
         <div className="final-cta-content">
@@ -278,8 +254,7 @@ export default function HomePage() {
             className="find-mentor-button large-button"
             onClick={handleFindMentor}
           >
-            Find my mentor
-            <span>→</span>
+            Find my mentor <span>→</span>
           </button>
         </div>
       </section>
