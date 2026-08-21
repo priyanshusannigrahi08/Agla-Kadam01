@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -18,6 +18,14 @@ const EXPERTISE_AREAS = [
   "Other",
 ];
 
+const EXPERIENCE_LEVELS = [
+  "Student / Just starting",
+  "1–3 years",
+  "3–5 years",
+  "5–10 years",
+  "10+ years",
+];
+
 export default function MentorPage() {
   const router = useRouter();
 
@@ -32,24 +40,39 @@ export default function MentorPage() {
 
     const form = new FormData(e.currentTarget);
 
-    const payload = {
-      name: form.get("name") as string,
-      email: form.get("email") as string,
-      linkedin_url: form.get("linkedin_url") as string,
-      expertise: form.get("expertise") as string,
-      availability: form.get("availability") as string,
-      calendly_url: form.get("calendly_url") as string,
-    };
+    const name = form.get("name") as string;
+    const email = form.get("email") as string;
+    const expertise = form.get("expertise") as string;
+    const experience = form.get("experience") as string;
+    const journey = form.get("journey") as string;
+    const whyMentor = form.get("why_mentor") as string;
+
+    /*
+      This payload uses the fields from your original mentors table.
+
+      journey and whyMentor are combined into the background field
+      so you don't need to immediately change your Supabase database.
+    */
 
     const { error: insertError } = await supabase
       .from("mentors")
-      .insert(payload);
+      .insert({
+        name,
+        email,
+        expertise,
+        availability: experience,
+        background: `${journey}\n\nWhy I want to mentor:\n${whyMentor}`,
+      });
 
     setSubmitting(false);
 
     if (insertError) {
       console.error(insertError);
-      setError("Something went wrong. Please try again.");
+
+      setError(
+        "Something went wrong while submitting your profile. Please try again."
+      );
+
       return;
     }
 
@@ -57,149 +80,150 @@ export default function MentorPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#FAF9F6] text-[#18181B]">
-      {/* HEADER */}
-      <header className="relative z-20 border-b border-[#E8E5E0] bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-5 sm:px-8">
+    <main className="min-h-screen bg-[#FAF9F6] text-[#29263D]">
+      {/* ================= HEADER ================= */}
+
+      <header className="border-b border-[#E8E5E0] bg-white">
+        <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6 lg:px-8">
           <Link
             href="/"
-            className="font-display text-2xl font-bold tracking-tight text-[#1E1B4B]"
+            className="text-2xl font-bold tracking-tight text-[#211E4B]"
           >
-            Agla<span className="text-[#6D5DFC]">Kadam</span>
+            Agla
+            <span className="text-[#6657E8]">Kadam</span>
           </Link>
 
           <Link
             href="/mentee"
-            className="rounded-lg px-3 py-2 text-sm font-semibold text-[#575569] transition hover:bg-[#F4F2FF] hover:text-[#6D5DFC]"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-[#615D70] transition hover:bg-[#F1EFFF] hover:text-[#6657E8]"
           >
             Looking for guidance?
           </Link>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-[#E8E5E0] bg-white">
-        <div className="absolute inset-0 agla-grid opacity-30" />
+      {/* ================= HERO ================= */}
 
-        <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
-          <div className="max-w-3xl">
-            <span className="inline-flex rounded-full bg-[#EEEAFE] px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-[#6D5DFC]">
-              Share what you&apos;ve learned
-            </span>
+      <section className="border-b border-[#E8E5E0] bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#6657E8]">
+            Become a mentor
+          </p>
 
-            <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-[#1E1B4B] sm:text-6xl lg:text-7xl">
-              Someone is standing where{" "}
-              <span className="text-[#6D5DFC]">
-                you once stood.
-              </span>
-            </h1>
+          <h1 className="mt-5 max-w-4xl font-serif text-5xl font-semibold leading-[1.08] text-[#211E4B] sm:text-6xl lg:text-7xl">
+            Your experience could be
+            <span className="text-[#6657E8]"> someone&apos;s next step.</span>
+          </h1>
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#6B6878] sm:text-xl">
-              You don&apos;t need to be a professional coach. If you&apos;ve
-              navigated a career, education, or life decision, your experience
-              could help someone facing a similar next step.
-            </p>
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-[#6D6878] sm:text-xl">
+            You don&apos;t have to be a professional coach to help someone.
+            Sometimes the most valuable guidance comes from someone who has
+            already walked a similar path.
+          </p>
 
-            <div className="mt-10 flex flex-wrap gap-4">
-              <a
-                href="#mentor-form"
-                className="inline-flex min-h-[54px] items-center justify-center rounded-xl bg-[#6D5DFC] px-7 text-sm font-bold text-white shadow-[0_12px_30px_rgba(109,93,252,0.25)] transition hover:-translate-y-0.5 hover:bg-[#5747E8]"
-              >
-                Become a mentor →
-              </a>
-
-              <Link
-                href="/mentee"
-                className="inline-flex min-h-[54px] items-center justify-center rounded-xl border border-[#DDD9E6] bg-white px-7 text-sm font-bold text-[#312E45] transition hover:border-[#6D5DFC] hover:text-[#6D5DFC]"
-              >
-                I&apos;m looking for guidance
-              </Link>
-            </div>
-          </div>
-
-          {/* THREE STEPS */}
-          <div className="mt-16 grid gap-4 sm:grid-cols-3">
-            <InfoCard
-              number="01"
-              title="Share your experience"
-              text="Tell us about your expertise, background, and the kind of guidance you can offer."
-            />
-
-            <InfoCard
-              number="02"
-              title="Set your availability"
-              text="Let people know when you are generally available for conversations."
-            />
-
-            <InfoCard
-              number="03"
-              title="Help someone move forward"
-              text="Share your booking link and have meaningful conversations with people."
-            />
-          </div>
+          <a
+            href="#mentor-form"
+            className="mt-9 inline-flex items-center rounded-xl bg-[#6657E8] px-7 py-4 text-sm font-semibold text-white shadow-lg shadow-[#6657E8]/20 transition hover:-translate-y-0.5 hover:bg-[#5546D8]"
+          >
+            Share your experience →
+          </a>
         </div>
       </section>
 
-      {/* FORM */}
+      {/* ================= FORM SECTION ================= */}
+
       <section
         id="mentor-form"
-        className="relative bg-[#FAF9F6]"
+        className="bg-[#FAF9F6]"
       >
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
-          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            {/* LEFT SIDE */}
-            <div className="lg:sticky lg:top-24">
-              <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#6D5DFC]">
-                Join the community
-              </span>
+        <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
+          <div className="grid gap-14 lg:grid-cols-[0.8fr_1.2fr]">
+            {/* ================= LEFT CONTENT ================= */}
 
-              <h2 className="mt-4 font-display text-4xl font-semibold leading-tight tracking-tight text-[#1E1B4B] sm:text-5xl">
-                Your experience has{" "}
-                <span className="text-[#6D5DFC]">
-                  value.
-                </span>
-              </h2>
-
-              <p className="mt-5 max-w-lg text-base leading-7 text-[#6B6878] sm:text-lg">
-                The most useful advice often comes from someone who remembers
-                what it felt like to be at the beginning.
+            <div className="lg:sticky lg:top-24 lg:h-fit">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6657E8]">
+                Why mentor?
               </p>
 
-              <div className="mt-10 space-y-6">
-                <Benefit
-                  number="01"
-                  title="Share real experience"
-                  text="Talk about what worked, what didn't, and what you learned along the way."
-                />
+              <h2 className="mt-5 font-serif text-4xl font-semibold leading-tight text-[#211E4B] sm:text-5xl">
+                Someone out there is where you once were.
+              </h2>
 
-                <Benefit
-                  number="02"
-                  title="Make an impact"
-                  text="One useful conversation can give someone clarity and confidence."
-                />
+              <p className="mt-6 text-base leading-7 text-[#6D6878] sm:text-lg">
+                Your journey has lessons that someone else may need right now.
+                You don&apos;t need perfect answers. You just need your
+                experience.
+              </p>
 
-                <Benefit
-                  number="03"
-                  title="No need for perfect answers"
-                  text="You're sharing your perspective and experience, not solving someone's entire life."
-                />
+              <div className="mt-10 space-y-7">
+                <div className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
+                    01
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-[#211E4B]">
+                      Share what you learned
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[#777180]">
+                      Share your experiences, mistakes, achievements, and
+                      lessons from your journey.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
+                    02
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-[#211E4B]">
+                      Help someone find clarity
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[#777180]">
+                      A conversation with the right person can make a confusing
+                      decision feel much clearer.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ECE9FF] font-bold text-[#6657E8]">
+                    03
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-[#211E4B]">
+                      Make an impact
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[#777180]">
+                      Your story could give someone the confidence to take
+                      their next step.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* FORM CARD */}
-            <div className="rounded-3xl border border-[#E8E5E0] bg-white p-6 shadow-[0_24px_70px_-30px_rgba(45,35,100,0.22)] sm:p-10">
+            {/* ================= FORM CARD ================= */}
+
+            <div className="rounded-3xl border border-[#E6E2DC] bg-white p-7 shadow-[0_25px_70px_-35px_rgba(30,25,70,0.3)] sm:p-10">
               <div className="mb-10">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6D5DFC]">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6657E8]">
                   Mentor profile
                 </p>
 
-                <h2 className="mt-3 font-display text-3xl font-semibold text-[#1E1B4B] sm:text-4xl">
+                <h2 className="mt-4 font-serif text-4xl font-semibold text-[#211E4B]">
                   Tell us about yourself
                 </h2>
 
-                <p className="mt-3 text-sm leading-6 text-[#6B6878] sm:text-base">
-                  This information helps us understand your experience and how
-                  you may be able to help someone.
+                <p className="mt-4 max-w-xl text-base leading-7 text-[#777180]">
+                  This helps us understand your experience and the kinds of
+                  people you may be able to guide.
                 </p>
               </div>
 
@@ -207,122 +231,186 @@ export default function MentorPage() {
                 onSubmit={handleSubmit}
                 className="space-y-7"
               >
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <Field label="Your name" htmlFor="name">
+                {/* NAME + EMAIL */}
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="w-full">
+                    <label
+                      htmlFor="name"
+                      className="mb-3 block text-base font-semibold text-[#363248]"
+                    >
+                      Your name
+                    </label>
+
                     <input
                       id="name"
                       name="name"
                       type="text"
                       required
                       placeholder="Your full name"
-                      className="agla-input"
+                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
                     />
-                  </Field>
+                  </div>
 
-                  <Field label="Email address" htmlFor="email">
+                  <div className="w-full">
+                    <label
+                      htmlFor="email"
+                      className="mb-3 block text-base font-semibold text-[#363248]"
+                    >
+                      Email address
+                    </label>
+
                     <input
                       id="email"
                       name="email"
                       type="email"
                       required
                       placeholder="you@example.com"
-                      className="agla-input"
+                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
                     />
-                  </Field>
+                  </div>
                 </div>
 
-                <Field
-                  label="LinkedIn profile"
-                  htmlFor="linkedin_url"
-                >
-                  <input
-                    id="linkedin_url"
-                    name="linkedin_url"
-                    type="url"
-                    required
-                    placeholder="https://linkedin.com/in/your-profile"
-                    className="agla-input"
-                  />
-                </Field>
+                {/* EXPERTISE */}
 
-                <Field
-                  label="What area do you have experience in?"
-                  htmlFor="expertise"
-                >
-                  <div className="agla-select-wrapper">
+                <div className="w-full">
+                  <label
+                    htmlFor="expertise"
+                    className="mb-3 block text-base font-semibold text-[#363248]"
+                  >
+                    What area do you have experience in?
+                  </label>
+
+                  <div className="relative w-full">
                     <select
                       id="expertise"
                       name="expertise"
                       required
                       defaultValue=""
-                      className="agla-select"
+                      className="h-[58px] w-full appearance-none rounded-2xl border border-[#DCD7D2] bg-white px-5 pr-14 text-base text-[#29263D] outline-none transition focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
                     >
                       <option value="" disabled>
                         Choose the area closest to your experience
                       </option>
 
                       {EXPERTISE_AREAS.map((area) => (
-                        <option key={area} value={area}>
+                        <option
+                          key={area}
+                          value={area}
+                        >
                           {area}
                         </option>
                       ))}
                     </select>
 
-                    <span className="agla-select-arrow">
-                      ↓
+                    <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#6657E8]">
+                      ⌄
                     </span>
                   </div>
-                </Field>
+                </div>
 
-                <Field
-                  label="Rough availability"
-                  htmlFor="availability"
-                >
-                  <input
-                    id="availability"
-                    name="availability"
-                    type="text"
-                    required
-                    placeholder="For example: Weekday evenings, IST"
-                    className="agla-input"
-                  />
-                </Field>
+                {/* EXPERIENCE */}
 
-                <Field
-                  label="Your booking link"
-                  htmlFor="calendly_url"
-                >
-                  <input
-                    id="calendly_url"
-                    name="calendly_url"
-                    type="url"
+                <div className="w-full">
+                  <label
+                    htmlFor="experience"
+                    className="mb-3 block text-base font-semibold text-[#363248]"
+                  >
+                    How much professional experience do you have?
+                  </label>
+
+                  <div className="relative w-full">
+                    <select
+                      id="experience"
+                      name="experience"
+                      required
+                      defaultValue=""
+                      className="h-[58px] w-full appearance-none rounded-2xl border border-[#DCD7D2] bg-white px-5 pr-14 text-base text-[#29263D] outline-none transition focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+                    >
+                      <option value="" disabled>
+                        Select your experience level
+                      </option>
+
+                      {EXPERIENCE_LEVELS.map((level) => (
+                        <option
+                          key={level}
+                          value={level}
+                        >
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+
+                    <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#6657E8]">
+                      ⌄
+                    </span>
+                  </div>
+                </div>
+
+                {/* JOURNEY */}
+
+                <div className="w-full">
+                  <label
+                    htmlFor="journey"
+                    className="mb-3 block text-base font-semibold text-[#363248]"
+                  >
+                    Tell us about your journey
+                  </label>
+
+                  <textarea
+                    id="journey"
+                    name="journey"
                     required
-                    placeholder="https://calendly.com/your-link"
-                    className="agla-input"
+                    rows={6}
+                    placeholder="Tell us about your education, career, work, projects, achievements, career changes, or experiences that have shaped your journey."
+                    className="block min-h-[160px] w-full resize-y rounded-2xl border border-[#DCD7D2] bg-white px-5 py-4 text-base leading-7 text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
                   />
-                </Field>
+                </div>
+
+                {/* WHY MENTOR */}
+
+                <div className="w-full">
+                  <label
+                    htmlFor="why_mentor"
+                    className="mb-3 block text-base font-semibold text-[#363248]"
+                  >
+                    Why would you like to mentor someone?
+                  </label>
+
+                  <textarea
+                    id="why_mentor"
+                    name="why_mentor"
+                    required
+                    rows={5}
+                    placeholder="What would you like to share? What kind of people or situations do you think you could help with?"
+                    className="block min-h-[150px] w-full resize-y rounded-2xl border border-[#DCD7D2] bg-white px-5 py-4 text-base leading-7 text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+                  />
+                </div>
+
+                {/* ERROR */}
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
                     {error}
                   </div>
                 )}
+
+                {/* SUBMIT */}
 
                 <div className="border-t border-[#E8E5E0] pt-7">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex min-h-[54px] items-center justify-center rounded-xl bg-[#6D5DFC] px-8 py-4 text-sm font-bold text-white shadow-[0_10px_30px_rgba(109,93,252,0.22)] transition hover:-translate-y-0.5 hover:bg-[#5747E8] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-[56px] items-center justify-center rounded-xl bg-[#6657E8] px-8 text-base font-semibold text-white shadow-lg shadow-[#6657E8]/20 transition hover:-translate-y-0.5 hover:bg-[#5546D8] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting
-                      ? "Submitting your profile..."
-                      : "Become a mentor →"}
+                      ? "Submitting..."
+                      : "Submit your mentor profile →"}
                   </button>
 
-                  <p className="mt-4 max-w-xl text-xs leading-5 text-[#85818F]">
-                    Your information helps us understand your background and
-                    connect you with people who may benefit from your
-                    experience.
+                  <p className="mt-4 text-sm leading-6 text-[#8A8491]">
+                    Your information helps us understand your experience and
+                    connect you with people who may benefit from your guidance.
                   </p>
                 </div>
               </form>
@@ -331,109 +419,33 @@ export default function MentorPage() {
         </div>
       </section>
 
-      {/* BOTTOM CTA */}
-      <section className="border-t border-[#302C63] bg-[#1E1B4B]">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-5 py-14 sm:px-8 md:flex-row md:items-center">
+      {/* ================= BOTTOM CTA ================= */}
+
+      <section className="bg-[#211E4B]">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-6 py-16 lg:flex-row lg:items-center lg:px-8">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A99EFF]">
-              Looking for guidance instead?
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#AAA2FF]">
+              Looking for guidance?
             </p>
 
-            <h2 className="mt-3 font-display text-3xl font-semibold text-white sm:text-4xl">
+            <h2 className="mt-4 font-serif text-4xl font-semibold text-white">
               You don&apos;t have to figure it out alone.
             </h2>
 
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#C9C6D9] sm:text-base">
-              Tell us where you are and what feels unclear. A conversation
-              with someone experienced might help you see your next step.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#C7C3D7]">
+              Tell us what you&apos;re navigating, and we&apos;ll help connect
+              you with someone whose experience might help.
             </p>
           </div>
 
           <Link
             href="/mentee"
-            className="inline-flex min-h-[52px] shrink-0 items-center justify-center rounded-xl bg-white px-7 text-sm font-bold text-[#1E1B4B] transition hover:-translate-y-0.5 hover:bg-[#F3F1FF]"
+            className="shrink-0 rounded-xl bg-white px-7 py-4 font-semibold text-[#211E4B] transition hover:-translate-y-0.5 hover:bg-[#F1EFFF]"
           >
             Find guidance →
           </Link>
         </div>
       </section>
     </main>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="w-full min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="mb-2.5 block text-sm font-semibold text-[#312E45]"
-      >
-        {label}
-      </label>
-
-      {children}
-    </div>
-  );
-}
-
-function InfoCard({
-  number,
-  title,
-  text,
-}: {
-  number: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-[#E8E5E0] bg-[#FAF9F6] p-6 transition hover:-translate-y-1 hover:bg-white hover:shadow-lg">
-      <span className="text-xs font-bold tracking-[0.14em] text-[#6D5DFC]">
-        {number}
-      </span>
-
-      <h3 className="mt-4 text-lg font-bold text-[#1E1B4B]">
-        {title}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-[#6B6878]">
-        {text}
-      </p>
-    </div>
-  );
-}
-
-function Benefit({
-  number,
-  title,
-  text,
-}: {
-  number: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEEAFE] text-sm font-bold text-[#6D5DFC]">
-        {number}
-      </div>
-
-      <div>
-        <h3 className="font-semibold text-[#1E1B4B]">
-          {title}
-        </h3>
-
-        <p className="mt-1 text-sm leading-6 text-[#6B6878]">
-          {text}
-        </p>
-      </div>
-    </div>
   );
 }
