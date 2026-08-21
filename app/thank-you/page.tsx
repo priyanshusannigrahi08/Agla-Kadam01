@@ -1,43 +1,53 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 
 function ThankYouContent() {
-  const params = useSearchParams();
-  const as = params.get("as");
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type");
 
-  const isMentee = as === "mentee";
+  const isMentor = type === "mentor";
 
   return (
-    <main className="min-h-screen bg-board text-chalk flex items-center">
-      <div className="mx-auto max-w-xl px-6 py-24 text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-sage mb-6">
-          AglaKadam
-        </p>
-        <h1 className="font-display italic text-3xl sm:text-4xl mb-4">
-          {isMentee ? "Got it. Sit tight." : "Thanks for offering your time."}
+    <main className="thank-you-page">
+      <div className="thank-you-card">
+        <p className="eyebrow">AGLA KADAM</p>
+
+        <div className="thank-you-icon">✓</div>
+
+        <h1>
+          {isMentor
+            ? "Thank you for stepping forward."
+            : "Your next conversation starts here."}
         </h1>
-        <p className="text-chalk/75 leading-relaxed mb-10">
-          {isMentee
-            ? "You'll be matched with a mentor whose path is close to yours. You'll get an email with their name and a link to book a call — usually within a few days."
-            : "We review every mentor sign-up before matching starts. Once approved, you'll start getting intro emails when someone's situation fits your background."}
+
+        <p>
+          {isMentor
+            ? "We’ve received your mentor application. Your experience could soon help someone else make their next step with more confidence."
+            : "We’ve received your request. Thank you for sharing your situation with us."}
         </p>
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold px-7 py-3.5 hover:brightness-95 transition"
-        >
-          Back to AglaKadam
-        </Link>
+
+        <div className="thank-you-actions">
+          <Link href="/" className="secondary-link">
+            Back to home
+          </Link>
+
+          {!isMentor && (
+            <Link href="/mentors" className="find-mentor-button">
+              Explore mentors <span>→</span>
+            </Link>
+          )}
+        </div>
       </div>
     </main>
   );
 }
 
-export default function ThankYou() {
+export default function ThankYouPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<main className="thank-you-page" />}>
       <ThankYouContent />
     </Suspense>
   );
