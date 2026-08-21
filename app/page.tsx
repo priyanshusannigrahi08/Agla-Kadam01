@@ -47,9 +47,7 @@ export default function HomePage() {
 
     const queryString = params.toString();
 
-    router.push(
-      queryString ? `/mentee?${queryString}` : "/mentee"
-    );
+    router.push(queryString ? `/mentee?${queryString}` : "/mentee");
   }
 
   return (
@@ -57,71 +55,68 @@ export default function HomePage() {
       {/* HERO */}
 
       <section className="hero-section">
-        <div className="hero-copy">
-          <p className="eyebrow">GUIDANCE FOR YOUR NEXT STEP</p>
+        <div className="hero-inner">
+          <div className="hero-copy">
+            <p className="eyebrow">GUIDANCE FOR YOUR NEXT STEP</p>
 
-          <h1>
-            You don&apos;t have to figure
-            <br />
-            everything out alone.
-          </h1>
+            <h1>
+              You don&apos;t have to figure
+              <br />
+              everything out alone.
+            </h1>
 
-          <p className="hero-description">
-            Connect with people who have already walked a path similar to the
-            one you&apos;re trying to navigate.
-          </p>
-        </div>
-
-        {/* QUICK MATCH BAR */}
-
-        <div className="quick-match">
-          <div className="quick-match-field">
-            <label htmlFor="situation">
-              WHERE ARE YOU RIGHT NOW?
-            </label>
-
-            <select
-              id="situation"
-              value={situation}
-              onChange={(event) =>
-                setSituation(event.target.value)
-              }
-            >
-              {situations.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            <p className="hero-description">
+              Connect with people who have already walked a path similar to the
+              one you&apos;re trying to navigate.
+            </p>
           </div>
 
-          <div className="quick-match-field">
-            <label htmlFor="help-area">
-              WHAT DO YOU NEED HELP WITH?
-            </label>
+          <div className="quick-match">
+            <div className="quick-match-field">
+              <label htmlFor="situation">
+                WHERE ARE YOU RIGHT NOW?
+              </label>
 
-            <select
-              id="help-area"
-              value={helpArea}
-              onChange={(event) =>
-                setHelpArea(event.target.value)
-              }
+              <select
+                id="situation"
+                value={situation}
+                onChange={(event) => setSituation(event.target.value)}
+              >
+                {situations.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="quick-match-field">
+              <label htmlFor="help-area">
+                WHAT DO YOU NEED HELP WITH?
+              </label>
+
+              <select
+                id="help-area"
+                value={helpArea}
+                onChange={(event) => setHelpArea(event.target.value)}
+              >
+                {helpAreas.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="find-mentor-button"
+              onClick={handleFindMentor}
             >
-              {helpAreas.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+              Find my mentor
+              <span>→</span>
+            </button>
           </div>
-
-          <button
-            type="button"
-            className="find-mentor-button"
-            onClick={handleFindMentor}
-          >
-            Find my mentor <span>→</span>
-          </button>
         </div>
       </section>
 
@@ -182,7 +177,7 @@ export default function HomePage() {
       {/* WHO THIS IS FOR */}
 
       <section className="home-section audience-section">
-        <div className="section-heading">
+        <div className="section-heading audience-heading">
           <p className="eyebrow">WHO IS AGLA KADAM FOR?</p>
 
           <h2>
@@ -231,7 +226,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* MENTOR SECTION */}
+      {/* MENTORS */}
 
       <section className="home-section mentor-home-section">
         <div className="mentor-home-content">
@@ -259,7 +254,8 @@ export default function HomePage() {
               className="secondary-button"
               onClick={() => router.push("/mentor")}
             >
-              Become a mentor <span>→</span>
+              Become a mentor
+              <span>→</span>
             </button>
           </div>
         </div>
@@ -268,21 +264,24 @@ export default function HomePage() {
       {/* FINAL CTA */}
 
       <section className="final-cta">
-        <p className="eyebrow">YOUR NEXT STEP STARTS HERE</p>
+        <div className="final-cta-content">
+          <p className="eyebrow">YOUR NEXT STEP STARTS HERE</p>
 
-        <h2>
-          Not sure what to do next?
-          <br />
-          Start with a conversation.
-        </h2>
+          <h2>
+            Not sure what to do next?
+            <br />
+            Start with a conversation.
+          </h2>
 
-        <button
-          type="button"
-          className="find-mentor-button large-button"
-          onClick={handleFindMentor}
-        >
-          Find my mentor <span>→</span>
-        </button>
+          <button
+            type="button"
+            className="find-mentor-button large-button"
+            onClick={handleFindMentor}
+          >
+            Find my mentor
+            <span>→</span>
+          </button>
+        </div>
       </section>
     </main>
   );
