@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AglaKadam",
-  description: "Find guidance for your next step.",
+  title: "AglaKadam — Your next step starts with a conversation",
+  description:
+    "Connect with experienced mentors for career guidance, higher studies, career transitions, skills and more.",
 };
 
 export default function RootLayout({
