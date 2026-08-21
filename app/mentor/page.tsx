@@ -42,27 +42,25 @@ export default function MentorPage() {
 
     const name = form.get("name") as string;
     const email = form.get("email") as string;
+    const linkedin = form.get("linkedin") as string;
+    const calendly = form.get("calendly") as string;
     const expertise = form.get("expertise") as string;
     const experience = form.get("experience") as string;
     const journey = form.get("journey") as string;
     const whyMentor = form.get("why_mentor") as string;
 
-    /*
-      This payload uses the fields from your original mentors table.
+    const { error: insertError } = await supabase.from("mentors").insert({
+      name,
+      email,
+      linkedin,
+      calendly,
+      expertise,
+      availability: experience,
+      background: `${journey}
 
-      journey and whyMentor are combined into the background field
-      so you don't need to immediately change your Supabase database.
-    */
-
-    const { error: insertError } = await supabase
-      .from("mentors")
-      .insert({
-        name,
-        email,
-        expertise,
-        availability: experience,
-        background: `${journey}\n\nWhy I want to mentor:\n${whyMentor}`,
-      });
+Why I want to mentor:
+${whyMentor}`,
+    });
 
     setSubmitting(false);
 
@@ -81,7 +79,7 @@ export default function MentorPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF9F6] text-[#29263D]">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
 
       <header className="border-b border-[#E8E5E0] bg-white">
         <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-6 lg:px-8">
@@ -102,7 +100,7 @@ export default function MentorPage() {
         </div>
       </header>
 
-      {/* ================= HERO ================= */}
+      {/* HERO */}
 
       <section className="border-b border-[#E8E5E0] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
@@ -112,7 +110,10 @@ export default function MentorPage() {
 
           <h1 className="mt-5 max-w-4xl font-serif text-5xl font-semibold leading-[1.08] text-[#211E4B] sm:text-6xl lg:text-7xl">
             Your experience could be
-            <span className="text-[#6657E8]"> someone&apos;s next step.</span>
+            <span className="text-[#6657E8]">
+              {" "}
+              someone&apos;s next step.
+            </span>
           </h1>
 
           <p className="mt-7 max-w-2xl text-lg leading-8 text-[#6D6878] sm:text-xl">
@@ -130,15 +131,12 @@ export default function MentorPage() {
         </div>
       </section>
 
-      {/* ================= FORM SECTION ================= */}
+      {/* MAIN FORM SECTION */}
 
-      <section
-        id="mentor-form"
-        className="bg-[#FAF9F6]"
-      >
+      <section id="mentor-form" className="bg-[#FAF9F6]">
         <div className="mx-auto max-w-6xl px-6 py-16 lg:px-8 lg:py-24">
           <div className="grid gap-14 lg:grid-cols-[0.8fr_1.2fr]">
-            {/* ================= LEFT CONTENT ================= */}
+            {/* LEFT SIDE */}
 
             <div className="lg:sticky lg:top-24 lg:h-fit">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#6657E8]">
@@ -209,7 +207,7 @@ export default function MentorPage() {
               </div>
             </div>
 
-            {/* ================= FORM CARD ================= */}
+            {/* FORM CARD */}
 
             <div className="rounded-3xl border border-[#E6E2DC] bg-white p-7 shadow-[0_25px_70px_-35px_rgba(30,25,70,0.3)] sm:p-10">
               <div className="mb-10">
@@ -227,10 +225,7 @@ export default function MentorPage() {
                 </p>
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-7"
-              >
+              <form onSubmit={handleSubmit} className="space-y-7">
                 {/* NAME + EMAIL */}
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -271,6 +266,53 @@ export default function MentorPage() {
                   </div>
                 </div>
 
+                {/* LINKEDIN + CALENDLY */}
+
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="w-full">
+                    <label
+                      htmlFor="linkedin"
+                      className="mb-3 block text-base font-semibold text-[#363248]"
+                    >
+                      LinkedIn profile
+                    </label>
+
+                    <input
+                      id="linkedin"
+                      name="linkedin"
+                      type="url"
+                      required
+                      placeholder="https://linkedin.com/in/your-profile"
+                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+                    />
+
+                    <p className="mt-2 text-sm leading-5 text-[#8A8491]">
+                      Helps mentees learn more about your background.
+                    </p>
+                  </div>
+
+                  <div className="w-full">
+                    <label
+                      htmlFor="calendly"
+                      className="mb-3 block text-base font-semibold text-[#363248]"
+                    >
+                      Calendly booking link
+                    </label>
+
+                    <input
+                      id="calendly"
+                      name="calendly"
+                      type="url"
+                      placeholder="https://calendly.com/your-name"
+                      className="h-[58px] w-full rounded-2xl border border-[#DCD7D2] bg-white px-5 text-base text-[#29263D] outline-none transition placeholder:text-[#A09AA7] focus:border-[#6657E8] focus:ring-4 focus:ring-[#6657E8]/10"
+                    />
+
+                    <p className="mt-2 text-sm leading-5 text-[#8A8491]">
+                      Optional. Mentees can use this link to book a session.
+                    </p>
+                  </div>
+                </div>
+
                 {/* EXPERTISE */}
 
                 <div className="w-full">
@@ -294,17 +336,14 @@ export default function MentorPage() {
                       </option>
 
                       {EXPERTISE_AREAS.map((area) => (
-                        <option
-                          key={area}
-                          value={area}
-                        >
+                        <option key={area} value={area}>
                           {area}
                         </option>
                       ))}
                     </select>
 
                     <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#6657E8]">
-                      ⌄
+                      ↓
                     </span>
                   </div>
                 </div>
@@ -332,17 +371,14 @@ export default function MentorPage() {
                       </option>
 
                       {EXPERIENCE_LEVELS.map((level) => (
-                        <option
-                          key={level}
-                          value={level}
-                        >
+                        <option key={level} value={level}>
                           {level}
                         </option>
                       ))}
                     </select>
 
                     <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#6657E8]">
-                      ⌄
+                      ↓
                     </span>
                   </div>
                 </div>
@@ -419,7 +455,7 @@ export default function MentorPage() {
         </div>
       </section>
 
-      {/* ================= BOTTOM CTA ================= */}
+      {/* BOTTOM CTA */}
 
       <section className="bg-[#211E4B]">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 px-6 py-16 lg:flex-row lg:items-center lg:px-8">
