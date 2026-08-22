@@ -60,6 +60,11 @@ Open [http://localhost:3000](http://localhost:3000).
    `mentees` and `mentors` tables with row-level security already
    configured (the public key can insert signups but can't read other
    people's data back out)
+4. Then run [`supabase/mentors_public_view.sql`](./supabase/mentors_public_view.sql) —
+   this creates a read-only view of *approved* mentors (with email
+   addresses excluded) that powers the public `/mentors` directory page.
+   To make a mentor show up there, open the `mentors` table in Supabase's
+   Table Editor and change their `status` from `pending` to `approved`.
 
 ### Deploying
 
@@ -84,6 +89,7 @@ supabase/
 ## Roadmap
 
 - [x] Manual signup + hand-matching (current stage)
+- [x] Browsable mentor directory with search (`/mentors`)
 - [ ] Admin view for reviewing and matching signups without opening
       Supabase directly
 - [ ] Rule-based auto-matching on tags/interests

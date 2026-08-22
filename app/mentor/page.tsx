@@ -1,312 +1,140 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-const expertiseOptions = [
-  "Career guidance",
-  "Higher studies",
-  "Job search",
-  "Career switching",
-  "Technology",
-  "Business / entrepreneurship",
-  "Marketing / growth",
-  "Personal development",
-  "Other",
-];
-
-export default function MentorPage() {
+export default function MentorSignup() {
   const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    headline: "",
-    company: "",
-    role: "",
-    experience: "",
-    expertise: "",
-    linkedin: "",
-    calendly: "",
-    bio: "",
-    whyMentor: "",
-  });
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+    const form = new FormData(e.currentTarget);
+    const payload = {
+      name: form.get("name") as string,
+      email: form.get("email") as string,
+      linkedin_url: form.get("linkedin_url") as string,
+      expertise: form.get("expertise") as string,
+      availability: form.get("availability") as string,
+      calendly_url: form.get("calendly_url") as string,
+    };
 
-  function updateField(name: string, value: string) {
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  }
+    const { error: insertError } = await supabase.from("mentors").insert(payload);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+    setSubmitting(false);
 
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/mentors", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to submit");
-      }
-
-      router.push("/thank-you?type=mentor");
-    } catch {
-      setMessage(
-        "Something went wrong while submitting your application. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    if (insertError) {
+      setError("Something didn't save. Try again in a moment.");
+      return;
     }
+
+    router.push("/thank-you?as=mentor");
   }
 
   return (
-    <main className="mentor-page">
-      <section className="mentor-page-hero">
-        <div>
-          <p className="eyebrow">FOR PEOPLE WHO WANT TO GIVE BACK</p>
+    <main className="min-h-screen bg-paper text-ink">
+      <div className="mx-auto max-w-xl px-6 py-16 sm:py-24">
+        <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">
+          ← Back to AglaKadam
+        </Link>
 
-          <h1>
-            Your journey might be
-            <br />
-            exactly what someone
-            <br />
-            needs to hear.
-          </h1>
+        <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">
+          Offer to mentor someone.
+        </h1>
+        <p className="text-ink/70 mb-10">
+          One call, thirty minutes, whenever suits you. We review every sign-up
+          before matching starts.
+        </p>
 
-          <p>
-            Become part of AglaKadam and help someone navigate a decision,
-            transition or challenge you may have already experienced yourself.
-          </p>
-        </div>
-      </section>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Field label="Your name" htmlFor="name">
+            <input id="name" name="name" type="text" required className="input" placeholder="Arjun Mehta" />
+          </Field>
 
-      <section className="form-wrapper">
-        <form className="agla-form" onSubmit={handleSubmit}>
-          <div className="form-section">
-            <p className="form-step">01 — INTRODUCE YOURSELF</p>
+          <Field label="Email" htmlFor="email">
+            <input id="email" name="email" type="email" required className="input" placeholder="you@example.com" />
+          </Field>
 
-            <div className="form-grid">
-              <div className="form-field">
-                <label htmlFor="name">Full name</label>
+          <Field label="LinkedIn profile" htmlFor="linkedin_url">
+            <input
+              id="linkedin_url"
+              name="linkedin_url"
+              type="url"
+              required
+              className="input"
+              placeholder="https://linkedin.com/in/…"
+            />
+          </Field>
 
-                <input
-                  id="name"
-                  className="agla-input"
-                  value={form.name}
-                  onChange={(event) =>
-                    updateField("name", event.target.value)
-                  }
-                  required
-                  placeholder="Your name"
-                />
-              </div>
+          <Field label="What can you actually speak to?" htmlFor="expertise">
+            <textarea
+              id="expertise"
+              name="expertise"
+              required
+              rows={3}
+              className="input"
+              placeholder="E.g. 'Switched from mechanical engineering to product management in 2 years' — specifics help us match you well."
+            />
+          </Field>
 
-              <div className="form-field">
-                <label htmlFor="email">Email address</label>
+          <Field label="Rough availability" htmlFor="availability">
+            <input
+              id="availability"
+              name="availability"
+              type="text"
+              required
+              className="input"
+              placeholder="E.g. weekday evenings IST"
+            />
+          </Field>
 
-                <input
-                  id="email"
-                  type="email"
-                  className="agla-input"
-                  value={form.email}
-                  onChange={(event) =>
-                    updateField("email", event.target.value)
-                  }
-                  required
-                  placeholder="you@example.com"
-                />
-              </div>
+          <Field label="Your booking link (Calendly or similar)" htmlFor="calendly_url">
+            <input
+              id="calendly_url"
+              name="calendly_url"
+              type="url"
+              required
+              className="input"
+              placeholder="https://calendly.com/…"
+            />
+          </Field>
 
-              <div className="form-field">
-                <label htmlFor="headline">
-                  A short professional headline
-                </label>
-
-                <input
-                  id="headline"
-                  className="agla-input"
-                  value={form.headline}
-                  onChange={(event) =>
-                    updateField("headline", event.target.value)
-                  }
-                  required
-                  placeholder="e.g. Product Manager helping early-career professionals"
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="company">Current company</label>
-
-                <input
-                  id="company"
-                  className="agla-input"
-                  value={form.company}
-                  onChange={(event) =>
-                    updateField("company", event.target.value)
-                  }
-                  placeholder="Company or organisation"
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="role">Current role</label>
-
-                <input
-                  id="role"
-                  className="agla-input"
-                  value={form.role}
-                  onChange={(event) =>
-                    updateField("role", event.target.value)
-                  }
-                  required
-                  placeholder="Your role"
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="experience">
-                  Years of professional experience
-                </label>
-
-                <input
-                  id="experience"
-                  type="number"
-                  min="0"
-                  className="agla-input"
-                  value={form.experience}
-                  onChange={(event) =>
-                    updateField("experience", event.target.value)
-                  }
-                  required
-                  placeholder="e.g. 5"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <p className="form-step">02 — HOW CAN YOU HELP?</p>
-
-            <div className="form-field">
-              <label htmlFor="expertise">Primary area of expertise</label>
-
-              <select
-                id="expertise"
-                className="agla-input"
-                value={form.expertise}
-                onChange={(event) =>
-                  updateField("expertise", event.target.value)
-                }
-                required
-              >
-                <option value="">Choose an area</option>
-
-                {expertiseOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="bio">
-                Tell us about your professional journey
-              </label>
-
-              <textarea
-                id="bio"
-                className="agla-input"
-                value={form.bio}
-                onChange={(event) =>
-                  updateField("bio", event.target.value)
-                }
-                required
-                placeholder="Share the experiences, transitions or lessons that might be useful to someone else."
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="whyMentor">
-                Why would you like to mentor through AglaKadam?
-              </label>
-
-              <textarea
-                id="whyMentor"
-                className="agla-input"
-                value={form.whyMentor}
-                onChange={(event) =>
-                  updateField("whyMentor", event.target.value)
-                }
-                required
-                placeholder="Tell us why this matters to you."
-              />
-            </div>
-          </div>
-
-          <div className="form-section">
-            <p className="form-step">03 — YOUR PROFILES & AVAILABILITY</p>
-
-            <div className="form-grid">
-              <div className="form-field">
-                <label htmlFor="linkedin">LinkedIn profile URL</label>
-
-                <input
-                  id="linkedin"
-                  type="url"
-                  className="agla-input"
-                  value={form.linkedin}
-                  onChange={(event) =>
-                    updateField("linkedin", event.target.value)
-                  }
-                  required
-                  placeholder="https://linkedin.com/in/..."
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="calendly">
-                  Calendly booking URL (optional)
-                </label>
-
-                <input
-                  id="calendly"
-                  type="url"
-                  className="agla-input"
-                  value={form.calendly}
-                  onChange={(event) =>
-                    updateField("calendly", event.target.value)
-                  }
-                  placeholder="https://calendly.com/..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {message && <p className="form-message error">{message}</p>}
+          {error && <p className="text-sm text-red-700">{error}</p>}
 
           <button
             type="submit"
-            className="find-mentor-button submit-button"
-            disabled={loading}
+            disabled={submitting}
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold px-7 py-3.5 hover:brightness-95 transition disabled:opacity-60"
           >
-            {loading ? "Submitting..." : "Apply to become a mentor"}{" "}
-            <span>→</span>
+            {submitting ? "Sending…" : "Submit"}
           </button>
         </form>
-      </section>
+      </div>
     </main>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="block font-mono text-xs uppercase tracking-[0.1em] text-ink/60 mb-2">
+        {label}
+      </label>
+      {children}
+    </div>
   );
 }

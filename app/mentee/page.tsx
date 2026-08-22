@@ -1,289 +1,150 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-const situations = [
-  { value: "", label: "Choose your situation" },
-  { value: "student", label: "Student" },
-  { value: "recent-graduate", label: "Recent graduate" },
-  { value: "working-professional", label: "Working professional" },
-  { value: "career-switcher", label: "Career switcher" },
-  { value: "entrepreneur", label: "Entrepreneur / founder" },
-  { value: "feeling-stuck", label: "Feeling stuck / unsure" },
+const SITUATIONS = [
+  "Left college, figuring out next steps",
+  "Final-year student, unsure what’s next",
+  "Working, want to switch careers",
+  "Something else",
 ];
 
-const helpAreas = [
-  { value: "", label: "Choose what you need help with" },
-  { value: "career-direction", label: "Career direction" },
-  { value: "higher-studies", label: "Higher studies" },
-  { value: "job-search", label: "Job search" },
-  { value: "career-switch", label: "Career switch" },
-  { value: "starting-business", label: "Starting a business" },
-  { value: "skills-technology", label: "Skills / technology" },
-  {
-    value: "marketing-business-growth",
-    label: "Marketing / business growth",
-  },
-  { value: "something-else", label: "Something else" },
-];
-
-function MenteeForm() {
+export default function MenteeSignup() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    situation: "",
-    helpArea: "",
-    background: "",
-    goal: "",
-    challenge: "",
-  });
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+    const form = new FormData(e.currentTarget);
+    const payload = {
+      name: form.get("name") as string,
+      email: form.get("email") as string,
+      situation: form.get("situation") as string,
+      background: form.get("background") as string,
+      stuck_on: form.get("stuck_on") as string,
+    };
 
-  useEffect(() => {
-    setForm((current) => ({
-      ...current,
-      situation: searchParams.get("stage") || current.situation,
-      helpArea: searchParams.get("area") || current.helpArea,
-    }));
-  }, [searchParams]);
+    const { error: insertError } = await supabase.from("mentees").insert(payload);
 
-  function updateField(name: string, value: string) {
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  }
+    setSubmitting(false);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/mentees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to submit");
-      }
-
-      router.push("/thank-you?type=mentee");
-    } catch {
-      setMessage(
-        "Something went wrong while submitting your request. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    if (insertError) {
+      setError("Something didn't save. Try again in a moment.");
+      return;
     }
+
+    router.push("/thank-you?as=mentee");
   }
 
   return (
-    <main className="form-page">
-      <section className="form-page-hero">
-        <p className="eyebrow">FIND YOUR NEXT CONVERSATION</p>
+    <main className="min-h-screen bg-paper text-ink">
+      <div className="mx-auto max-w-xl px-6 py-16 sm:py-24">
+        <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">
+          ← Back to AglaKadam
+        </Link>
 
-        <h1>
-          Tell us where you are.
-          <br />
-          We&apos;ll start from there.
+        <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">
+          Tell us where you’re stuck.
         </h1>
-
-        <p>
-          The more context you share, the easier it becomes to understand what
-          kind of guidance could actually help you.
+        <p className="text-ink/70 mb-10">
+          Five minutes. We&rsquo;ll match you with a mentor and email you their name.
         </p>
-      </section>
 
-      <section className="form-wrapper">
-        <form className="agla-form" onSubmit={handleSubmit}>
-          <div className="form-section">
-            <p className="form-step">01 — ABOUT YOU</p>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Field label="Your name" htmlFor="name">
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              className="input"
+              placeholder="Priya Sharma"
+            />
+          </Field>
 
-            <div className="form-grid">
-              <div className="form-field">
-                <label htmlFor="name">Your name</label>
-                <input
-                  id="name"
-                  className="agla-input"
-                  value={form.name}
-                  onChange={(event) =>
-                    updateField("name", event.target.value)
-                  }
-                  required
-                  placeholder="What should we call you?"
-                />
-              </div>
+          <Field label="Email" htmlFor="email">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="input"
+              placeholder="you@example.com"
+            />
+          </Field>
 
-              <div className="form-field">
-                <label htmlFor="email">Email address</label>
-                <input
-                  id="email"
-                  type="email"
-                  className="agla-input"
-                  value={form.email}
-                  onChange={(event) =>
-                    updateField("email", event.target.value)
-                  }
-                  required
-                  placeholder="you@example.com"
-                />
-              </div>
+          <Field label="Which of these fits you best?" htmlFor="situation">
+            <select id="situation" name="situation" required className="input" defaultValue="">
+              <option value="" disabled>
+                Choose one
+              </option>
+              {SITUATIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-              <div className="form-field">
-                <label htmlFor="phone">Phone number (optional)</label>
-                <input
-                  id="phone"
-                  className="agla-input"
-                  value={form.phone}
-                  onChange={(event) =>
-                    updateField("phone", event.target.value)
-                  }
-                  placeholder="+91 ..."
-                />
-              </div>
-            </div>
-          </div>
+          <Field label="Your background" htmlFor="background">
+            <textarea
+              id="background"
+              name="background"
+              required
+              rows={3}
+              className="input"
+              placeholder="Degree/field, what you've studied or worked on so far"
+            />
+          </Field>
 
-          <div className="form-section">
-            <p className="form-step">02 — WHERE YOU ARE NOW</p>
+          <Field label="What are you actually stuck on?" htmlFor="stuck_on">
+            <textarea
+              id="stuck_on"
+              name="stuck_on"
+              required
+              rows={4}
+              className="input"
+              placeholder="Be specific — this is what we match on. E.g. 'I don't know if an MBA is worth it for a marketing career' beats 'I need career advice.'"
+            />
+          </Field>
 
-            <div className="form-grid">
-              <div className="form-field">
-                <label htmlFor="situation">Your current situation</label>
-
-                <select
-                  id="situation"
-                  className="agla-input"
-                  value={form.situation}
-                  onChange={(event) =>
-                    updateField("situation", event.target.value)
-                  }
-                  required
-                >
-                  {situations.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="helpArea">What do you need help with?</label>
-
-                <select
-                  id="helpArea"
-                  className="agla-input"
-                  value={form.helpArea}
-                  onChange={(event) =>
-                    updateField("helpArea", event.target.value)
-                  }
-                  required
-                >
-                  {helpAreas.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <p className="form-step">03 — YOUR STORY</p>
-
-            <div className="form-field">
-              <label htmlFor="background">
-                Tell us a little about your background
-              </label>
-
-              <textarea
-                id="background"
-                className="agla-input"
-                value={form.background}
-                onChange={(event) =>
-                  updateField("background", event.target.value)
-                }
-                required
-                placeholder="Where are you coming from? What have you studied or worked on?"
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="goal">What are you hoping to do next?</label>
-
-              <textarea
-                id="goal"
-                className="agla-input"
-                value={form.goal}
-                onChange={(event) =>
-                  updateField("goal", event.target.value)
-                }
-                required
-                placeholder="Describe the direction you're considering."
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="challenge">
-                What are you currently struggling with?
-              </label>
-
-              <textarea
-                id="challenge"
-                className="agla-input"
-                value={form.challenge}
-                onChange={(event) =>
-                  updateField("challenge", event.target.value)
-                }
-                required
-                placeholder="What decision, problem or uncertainty would you like guidance on?"
-              />
-            </div>
-          </div>
-
-          {message && <p className="form-message error">{message}</p>}
+          {error && <p className="text-sm text-red-700">{error}</p>}
 
           <button
             type="submit"
-            className="find-mentor-button submit-button"
-            disabled={loading}
+            disabled={submitting}
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold px-7 py-3.5 hover:brightness-95 transition disabled:opacity-60"
           >
-            {loading ? "Submitting..." : "Submit my request"} <span>→</span>
+            {submitting ? "Sending…" : "Submit and get matched"}
           </button>
         </form>
-      </section>
+      </div>
     </main>
   );
 }
 
-export default function MenteePage() {
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Suspense
-      fallback={
-        <main className="form-page">
-          <section className="form-page-hero">
-            <p className="eyebrow">FIND YOUR NEXT CONVERSATION</p>
-            <h1>Loading your guidance form...</h1>
-          </section>
-        </main>
-      }
-    >
-      <MenteeForm />
-    </Suspense>
+    <div>
+      <label htmlFor={htmlFor} className="block font-mono text-xs uppercase tracking-[0.1em] text-ink/60 mb-2">
+        {label}
+      </label>
+      {children}
+    </div>
   );
 }

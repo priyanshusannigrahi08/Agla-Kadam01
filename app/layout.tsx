@@ -1,20 +1,38 @@
 import type { Metadata } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["400", "500", "600"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  weight: ["400", "500"],
+});
+
 export const metadata: Metadata = {
-  title: "AglaKadam — Your next step starts with a conversation",
+  title: "AglaKadam — Find a mentor, book one call",
   description:
-    "Connect with experienced mentors for career guidance, higher studies, career transitions, skills and more.",
+    "Agla kadam means 'next step' in Hindi. For college dropouts, final-year students, and career switchers: get matched with a mentor and book a single guidance call. No sign-up fees, no algorithms guessing at you.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}>
+        {children}
+      </body>
     </html>
   );
 }
