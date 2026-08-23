@@ -8,7 +8,7 @@ import { uploadProfilePhoto } from "@/lib/profilePhoto";
 
 const SITUATIONS = [
   "Left college, figuring out next steps",
-  "Final-year student, unsure what’s next",
+  "Final-year student, unsure what's next",
   "Working, want to switch careers",
   "Something else",
 ];
@@ -54,6 +54,10 @@ export default function MenteeSignup() {
         photo_url = await uploadProfilePhoto(photo, "mentees");
       }
 
+      const situationValue = form.get("situation") as string;
+      const backgroundValue = form.get("background") as string;
+      const stuckOnValue = form.get("stuck_on") as string;
+
       // Save mentee profile
       const { data, error: insertError } = await supabase
         .from("mentees")
@@ -61,9 +65,12 @@ export default function MenteeSignup() {
           user_id: user.id,
           name: form.get("name") as string,
           email: form.get("email") as string,
-          situation: form.get("situation") as string,
-          background: form.get("background") as string,
-          stuck_on: form.get("stuck_on") as string,
+          situation: situationValue,
+          background: backgroundValue,
+          stuck_on: stuckOnValue,
+          stage: situationValue,
+          area: backgroundValue,
+          challenge: stuckOnValue,
           photo_url: photo_url,
         })
         .select();
@@ -101,11 +108,11 @@ export default function MenteeSignup() {
         </Link>
 
         <h1 className="font-display mt-6 mb-2 text-3xl sm:text-4xl">
-          Tell us where you’re stuck.
+          Tell us where you're stuck.
         </h1>
 
         <p className="mb-10 text-ink/70">
-          Five minutes. We’ll match you with a mentor and email you their
+          Five minutes. We'll match you with a mentor and email you their
           name.
         </p>
 
