@@ -10,12 +10,10 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function completeSignIn() {
+    async function finish() {
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
-      const next = url.searchParams.get("next") || "/";
 
-      // PKCE flow: Supabase returns an authorization code in the query string.
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -23,33 +21,38 @@ export default function AuthCallbackPage() {
           if (!cancelled) setErrorMessage(error.message);
           return;
         }
+      }
 
-        window.location.replace(next.startsWith("/") ? next : "/");
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        if (!cancelled) {
+          setErrorMessage(
+            error?.message || "No authentication session was returned. Please try signing in again."
+          );
+        }
         return;
       }
 
-      // Implicit/hash flow: the Supabase client may already have consumed the
-      // tokens from the URL hash before this component runs.
-      const { data, error } = await supabase.auth.getSession();
+      const role = user.user_metadata?.role;
 
-      if (error) {
-        if (!cancelled) setErrorMessage(error.message);
+      if (role === "mentor") {
+        window.location.replace("/mentor");
         return;
       }
 
-      if (data.session) {
-        window.location.replace(next.startsWith("/") ? next : "/");
+      if (role === "mentee") {
+        window.location.replace("/mentee");
         return;
       }
 
-      if (!cancelled) {
-        setErrorMessage(
-          "No authentication session was returned. Please try signing in again."
-        );
-      }
+      window.location.replace("/onboarding");
     }
 
-    completeSignIn();
+    finish();
 
     return () => {
       cancelled = true;
