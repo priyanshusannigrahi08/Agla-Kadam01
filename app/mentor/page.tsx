@@ -19,10 +19,12 @@ export default function MentorSignup() {
     const payload = {
       name: form.get("name") as string,
       email: form.get("email") as string,
-      linkedin_url: form.get("linkedin_url") as string,
+      linkedin: form.get("linkedin") as string,
       expertise: form.get("expertise") as string,
-      availability: form.get("availability") as string,
-      calendly_url: form.get("calendly_url") as string,
+      experience: (form.get("experience") as string) || "",
+      journey: (form.get("journey") as string) || "",
+      why_mentor: (form.get("why_mentor") as string) || "",
+      calendly: form.get("calendly") as string,
     };
 
     const { error: insertError } = await supabase.from("mentors").insert(payload);
@@ -61,10 +63,10 @@ export default function MentorSignup() {
             <input id="email" name="email" type="email" required className="input" placeholder="you@example.com" />
           </Field>
 
-          <Field label="LinkedIn profile" htmlFor="linkedin_url">
+          <Field label="LinkedIn profile" htmlFor="linkedin">
             <input
-              id="linkedin_url"
-              name="linkedin_url"
+              id="linkedin"
+              name="linkedin"
               type="url"
               required
               className="input"
@@ -83,21 +85,40 @@ export default function MentorSignup() {
             />
           </Field>
 
-          <Field label="Rough availability" htmlFor="availability">
+          <Field label="Your experience (optional)" htmlFor="experience">
             <input
-              id="availability"
-              name="availability"
+              id="experience"
+              name="experience"
               type="text"
-              required
               className="input"
-              placeholder="E.g. weekday evenings IST"
+              placeholder="E.g. 5 years, Senior PM at a startup"
             />
           </Field>
 
-          <Field label="Your booking link (Calendly or similar)" htmlFor="calendly_url">
+          <Field label="Your career journey (optional)" htmlFor="journey">
+            <textarea
+              id="journey"
+              name="journey"
+              rows={3}
+              className="input"
+              placeholder="A short version of how you got to where you are now."
+            />
+          </Field>
+
+          <Field label="Why do you want to mentor? (optional)" htmlFor="why_mentor">
+            <textarea
+              id="why_mentor"
+              name="why_mentor"
+              rows={3}
+              className="input"
+              placeholder="Whatever's true for you — we just read these, not screen on them."
+            />
+          </Field>
+
+          <Field label="Your booking link (Calendly or similar)" htmlFor="calendly">
             <input
-              id="calendly_url"
-              name="calendly_url"
+              id="calendly"
+              name="calendly"
               type="url"
               required
               className="input"
