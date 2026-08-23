@@ -37,19 +37,10 @@ export default function AuthCallbackPage() {
         return;
       }
 
+      // Only users who have not yet chosen how they want to use AglaKadam
+      // are sent to onboarding. Returning users go back to the site.
       const role = user.user_metadata?.role;
-
-      if (role === "mentor") {
-        window.location.replace("/mentor");
-        return;
-      }
-
-      if (role === "mentee") {
-        window.location.replace("/mentee");
-        return;
-      }
-
-      window.location.replace("/onboarding");
+      window.location.replace(role === "mentor" || role === "mentee" ? "/" : "/onboarding");
     }
 
     finish();
