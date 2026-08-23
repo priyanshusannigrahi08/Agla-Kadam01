@@ -69,7 +69,7 @@ function MentorDirectoryContent() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search e.g. “product management” or “switched careers”"
+          placeholder="Search e.g. product management or switched careers"
           className="input mb-10 max-w-xl"
           aria-label="Search mentors"
         />
