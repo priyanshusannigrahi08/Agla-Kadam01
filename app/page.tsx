@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
+import AuthButton from "@/components/AuthButton";
 
 const SITUATIONS = [
   { label: "Just left college", query: "left college" },
@@ -36,14 +37,27 @@ export default function Home() {
     <main className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10 bg-paper sticky top-0 z-10">
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl tracking-tight">AglaKadam</Link>
+          <Link href="/" className="font-display text-xl tracking-tight">
+            AglaKadam
+          </Link>
+
           <nav className="hidden sm:flex items-center gap-8 font-body text-sm text-ink/70">
-            <Link href="/mentors" className="hover:text-ink transition">Browse mentors</Link>
-            <Link href="/mentor" className="hover:text-ink transition">Become a mentor</Link>
+            <Link href="/mentors" className="hover:text-ink transition">
+              Browse mentors
+            </Link>
+            <Link href="/mentor" className="hover:text-ink transition">
+              Become a mentor
+            </Link>
           </nav>
+
           <div className="flex items-center gap-3">
-            <Link href="/auth" className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white text-ink font-body font-medium text-sm px-4 py-2.5 hover:bg-paper transition">Sign in</Link>
-            <Link href="/mentee" className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition">Get started</Link>
+            <AuthButton />
+            <Link
+              href="/mentee"
+              className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
+            >
+              Get started
+            </Link>
           </div>
         </div>
       </header>
