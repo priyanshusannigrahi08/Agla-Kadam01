@@ -8,10 +8,12 @@ import { supabase } from "@/lib/supabaseClient";
 type Mentor = {
   id: string;
   name: string;
-  linkedin_url: string;
+  linkedin: string;
+  calendly: string;
   expertise: string;
-  availability: string;
-  calendly_url: string;
+  experience: string | null;
+  journey: string | null;
+  why_mentor: string | null;
 };
 
 function MentorDirectoryContent() {
@@ -25,7 +27,7 @@ function MentorDirectoryContent() {
     async function loadMentors() {
       const { data, error: fetchError } = await supabase
         .from("mentors_public")
-        .select("id, name, linkedin_url, expertise, availability, calendly_url")
+        .select("id, name, linkedin, calendly, expertise, experience, journey, why_mentor")
         .order("name", { ascending: true });
 
       if (fetchError) {
@@ -43,7 +45,10 @@ function MentorDirectoryContent() {
     if (!query.trim()) return mentors;
     const q = query.toLowerCase();
     return mentors.filter(
-      (m) => m.name.toLowerCase().includes(q) || m.expertise.toLowerCase().includes(q)
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.expertise.toLowerCase().includes(q) ||
+        (m.experience ?? "").toLowerCase().includes(q)
     );
   }, [mentors, query]);
 
@@ -106,26 +111,30 @@ export default function MentorDirectory() {
 }
 
 function MentorCard({ mentor }: { mentor: Mentor }) {
+  const bio = mentor.why_mentor || mentor.journey || mentor.experience;
+
   return (
     <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow flex flex-col">
       <h2 className="font-display text-xl mb-1">{mentor.name}</h2>
-      <p className="font-body text-sm text-ink/70 leading-relaxed mb-4 flex-1">
+      <p className="font-body text-sm text-ink/70 leading-relaxed mb-2 flex-1">
         {mentor.expertise}
       </p>
-      <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink/40 mb-5">
-        {mentor.availability}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <a
-          href={mentor.calendly_url}
+      {bio && (
+        <p className="font-body text-xs text-ink/50 leading-relaxed mb-4 italic">
+          &ldquo;{bio}&rdquo;
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3 mt-auto">
+        
+          href={mentor.calendly}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
         >
           Book a call
         </a>
-        <a
-          href={mentor.linkedin_url}
+        
+          href={mentor.linkedin}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
