@@ -24,7 +24,7 @@ export default function SearchBar() {
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search e.g. “product management” or “career switch”"
+        placeholder="Search e.g. product management or career switch"
         className="flex-1 bg-transparent text-ink px-3 py-3.5 font-body text-sm placeholder:text-ink/40 focus:outline-none"
         aria-label="Search mentors"
       />
