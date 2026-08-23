@@ -14,6 +14,7 @@ type Mentor = {
   experience: string | null;
   journey: string | null;
   why_mentor: string | null;
+  photo_url: string | null;
 };
 
 function MentorDirectoryContent() {
@@ -27,7 +28,7 @@ function MentorDirectoryContent() {
     async function loadMentors() {
       const { data, error: fetchError } = await supabase
         .from("mentors_public")
-        .select("id, name, linkedin, calendly, expertise, experience, journey, why_mentor")
+        .select("id, name, linkedin, calendly, expertise, experience, journey, why_mentor, photo_url")
         .order("name", { ascending: true });
 
       if (fetchError) {
@@ -61,8 +62,7 @@ function MentorDirectoryContent() {
 
         <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">Browse mentors</h1>
         <p className="text-ink/70 mb-8 max-w-lg">
-          Search by name or what someone knows. Book directly — no form, no
-          waiting on a match.
+          Search by name or what someone knows. Book directly — no form, no waiting on a match.
         </p>
 
         <input
@@ -75,7 +75,6 @@ function MentorDirectoryContent() {
         />
 
         {loading && <p className="font-mono text-sm text-ink/50">Loading mentors…</p>}
-
         {error && <p className="text-sm text-red-700">{error}</p>}
 
         {!loading && !error && filtered.length === 0 && (
@@ -112,21 +111,58 @@ export default function MentorDirectory() {
 
 function MentorCard({ mentor }: { mentor: Mentor }) {
   const bio = mentor.why_mentor || mentor.journey || mentor.experience;
+  const initial = mentor.name?.trim().charAt(0).toUpperCase() || "M";
 
   return (
     <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow flex flex-col">
-      <h2 className="font-display text-xl mb-1">{mentor.name}</h2>
+      <div className="flex items-center gap-4 mb-5">
+        {mentor.photo_url ? (
+          <img
+            src={mentor.photo_url}
+            alt={`${mentor.name}'s profile`}
+            className="h-16 w-16 shrink-0 rounded-full object-cover border border-ink/10 bg-paper"
+          />
+        ) : (
+          <div className="h-16 w-16 shrink-0 rounded-full bg-board/10 border border-board/10 flex items-center justify-center font-display text-2xl text-board">
+            {initial}
+          </div>
+        )}
+
+        <div className="min-w-0">
+          <h2 className="font-display text-xl mb-1 truncate">{mentor.name}</h2>
+          {mentor.experience && (
+            <p className="font-body text-xs text-ink/50 truncate">{mentor.experience}</p>
+          )}
+        </div>
+      </div>
+
       <p className="font-body text-sm text-ink/70 leading-relaxed mb-2 flex-1">
         {mentor.expertise}
       </p>
+
       {bio && (
         <p className="font-body text-xs text-ink/50 leading-relaxed mb-4 italic">
           &ldquo;{bio}&rdquo;
         </p>
       )}
+
       <div className="flex flex-wrap gap-3 mt-auto">
-        <a href={mentor.calendly} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition">Book a call</a>
-        <a href={mentor.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition">LinkedIn</a>
+        <a
+          href={mentor.calendly}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
+        >
+          Book a call
+        </a>
+        <a
+          href={mentor.linkedin}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
+        >
+          LinkedIn
+        </a>
       </div>
     </div>
   );
