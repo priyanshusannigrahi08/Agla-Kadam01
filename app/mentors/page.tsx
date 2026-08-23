@@ -17,9 +17,16 @@ type Mentor = {
   photo_url: string | null;
 };
 
+type Rating = {
+  mentor_id: string;
+  average_rating: number;
+  review_count: number;
+};
+
 function MentorDirectoryContent() {
   const searchParams = useSearchParams();
   const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
@@ -33,9 +40,24 @@ function MentorDirectoryContent() {
 
       if (fetchError) {
         setError("Couldn't load mentors right now. Try refreshing.");
-      } else {
-        setMentors(data ?? []);
+        setLoading(false);
+        return;
       }
+
+      setMentors(data ?? []);
+
+      const { data: ratingData } = await supabase
+        .from("mentor_ratings")
+        .select("mentor_id, average_rating, review_count");
+
+      if (ratingData) {
+        const map: Record<string, Rating> = {};
+        for (const r of ratingData) {
+          map[r.mentor_id] = r;
+        }
+        setRatings(map);
+      }
+
       setLoading(false);
     }
 
@@ -93,7 +115,7 @@ function MentorDirectoryContent() {
 
         <div className="grid sm:grid-cols-2 gap-6">
           {filtered.map((mentor) => (
-            <MentorCard key={mentor.id} mentor={mentor} />
+            <MentorCard key={mentor.id} mentor={mentor} rating={ratings[mentor.id]} />
           ))}
         </div>
       </div>
@@ -109,13 +131,24 @@ export default function MentorDirectory() {
   );
 }
 
-function MentorCard({ mentor }: { mentor: Mentor }) {
+function StarDisplay({ rating }: { rating: number }) {
+  const rounded = Math.round(rating);
+  return (
+    <span className="text-amber text-sm tracking-tight" aria-hidden="true">
+      {"★".repeat(rounded)}
+      <span className="text-ink/20">{"★".repeat(5 - rounded)}</span>
+    </span>
+  );
+}
+
+function MentorCard({ mentor, rating }: { mentor: Mentor; rating?: Rating }) {
   const bio = mentor.why_mentor || mentor.journey || mentor.experience;
   const initial = mentor.name?.trim().charAt(0).toUpperCase() || "M";
+  const reviewLink = `/review?mentor=${mentor.id}&name=${encodeURIComponent(mentor.name)}`;
 
   return (
     <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow flex flex-col">
-      <div className="flex items-center gap-4 mb-5">
+      <div className="flex items-center gap-4 mb-4">
         {mentor.photo_url ? (
           <img
             src={mentor.photo_url}
@@ -136,6 +169,17 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
         </div>
       </div>
 
+      {rating ? (
+        <div className="flex items-center gap-2 mb-4">
+          <StarDisplay rating={rating.average_rating} />
+          <span className="font-mono text-xs text-ink/50">
+            {rating.average_rating} ({rating.review_count} review{rating.review_count === 1 ? "" : "s"})
+          </span>
+        </div>
+      ) : (
+        <p className="font-mono text-xs text-ink/40 mb-4">No reviews yet</p>
+      )}
+
       <p className="font-body text-sm text-ink/70 leading-relaxed mb-2 flex-1">
         {mentor.expertise}
       </p>
@@ -147,7 +191,7 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
       )}
 
       <div className="flex flex-wrap gap-3 mt-auto">
-        <a
+        
           href={mentor.calendly}
           target="_blank"
           rel="noopener noreferrer"
@@ -155,7 +199,7 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
         >
           Book a call
         </a>
-        <a
+        
           href={mentor.linkedin}
           target="_blank"
           rel="noopener noreferrer"
@@ -163,6 +207,12 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
         >
           LinkedIn
         </a>
+        <Link
+          href={reviewLink}
+          className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
+        >
+          Leave a review
+        </Link>
       </div>
     </div>
   );
