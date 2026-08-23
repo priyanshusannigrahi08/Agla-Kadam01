@@ -61,7 +61,7 @@ function MentorDirectoryContent() {
 
         <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">Browse mentors</h1>
         <p className="text-ink/70 mb-8 max-w-lg">
-          Search by name or what someone knows. Book directly — no form, no
+          Search by name or what someone knows. Book directly, no form, no
           waiting on a match.
         </p>
 
@@ -74,7 +74,7 @@ function MentorDirectoryContent() {
           aria-label="Search mentors"
         />
 
-        {loading && <p className="font-mono text-sm text-ink/50">Loading mentors…</p>}
+        {loading && <p className="font-mono text-sm text-ink/50">Loading mentors...</p>}
 
         {error && <p className="text-sm text-red-700">{error}</p>}
 
@@ -82,12 +82,12 @@ function MentorDirectoryContent() {
           <div className="bg-white rounded-sm border border-ink/10 p-8 pin-shadow max-w-xl">
             <p className="font-body text-ink/70">
               {mentors.length === 0
-                ? "No mentors listed yet — check back soon, or "
-                : "No mentors match that search — try a different term, or "}
+                ? "No mentors listed yet, check back soon, or "
+                : "No mentors match that search, try a different term, or "}
               <Link href="/mentee" className="underline text-board hover:text-board/70">
                 submit your situation instead
               </Link>{" "}
-              and we&rsquo;ll match you directly.
+              and we will match you directly.
             </p>
           </div>
         )}
@@ -121,7 +121,7 @@ function MentorCard({ mentor }: { mentor: Mentor }) {
       </p>
       {bio && (
         <p className="font-body text-xs text-ink/50 leading-relaxed mb-4 italic">
-          &ldquo;{bio}&rdquo;
+          {bio}
         </p>
       )}
       <div className="flex flex-wrap gap-3 mt-auto">
