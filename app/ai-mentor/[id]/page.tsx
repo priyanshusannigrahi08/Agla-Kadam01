@@ -116,16 +116,12 @@ export default function AiMentorPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 sm:py-12">
-        {/* BACK */}
-
         <Link
           href="/mentors"
           className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
         >
           ← Back to mentors
         </Link>
-
-        {/* MENTOR HEADER */}
 
         <section className="mb-8 flex items-center gap-5 border-b border-ink/10 pb-8">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-board/10">
@@ -151,8 +147,6 @@ export default function AiMentorPage() {
           </div>
         </section>
 
-        {/* CHAT */}
-
         <section className="flex flex-1 flex-col">
           <div className="flex flex-1 flex-col gap-4 pb-8">
             {messages.map((item) => (
@@ -168,8 +162,6 @@ export default function AiMentorPage() {
               </div>
             ))}
           </div>
-
-          {/* INPUT */}
 
           <form
             onSubmit={handleSubmit}
