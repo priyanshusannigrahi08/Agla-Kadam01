@@ -24,20 +24,23 @@ export async function POST(request: NextRequest) {
     const mentor = virtualMentors.find((item) => item.id === mentorId);
 
     if (!mentor) {
-      return NextResponse.json({ error: "Mentor not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Mentor not found." },
+        { status: 404 }
+      );
     }
 
     const conversation: ChatMessage[] = messages
-      .filter(
-        (item: unknown): item is ChatMessage => {
-          if (!item || typeof item !== "object") return false;
-          const message = item as ChatMessage;
-          return (
-            (message.role === "user" || message.role === "assistant") &&
-            typeof message.content === "string"
-          );
-        })
-      )
+      .filter((item: unknown): item is ChatMessage => {
+        if (!item || typeof item !== "object") return false;
+
+        const message = item as ChatMessage;
+
+        return (
+          (message.role === "user" || message.role === "assistant") &&
+          typeof message.content === "string"
+        );
+      })
       .slice(-20);
 
     const instructions = `You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
@@ -77,6 +80,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
 
     if (!response.ok) {
       console.error("OpenAI API error:", data);
+
       return NextResponse.json(
         { error: "The mentor could not respond right now." },
         { status: response.status }
@@ -91,6 +95,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
     return NextResponse.json({ reply });
   } catch (error) {
     console.error("AI mentor route error:", error);
+
     return NextResponse.json(
       { error: "Something went wrong while contacting the mentor." },
       { status: 500 }
