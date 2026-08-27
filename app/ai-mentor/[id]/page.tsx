@@ -19,6 +19,8 @@ export default function AiMentorPage() {
   }, [params.id]);
 
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [messages, setMessages] = useState<Message[]>(() => {
     if (!mentor) return [];
@@ -43,54 +45,18 @@ export default function AiMentorPage() {
             ← Back to mentors
           </Link>
 
-          <h1 className="font-display mt-8 text-3xl">
-            Mentor not found
-          </h1>
-
-          <p className="mt-3 text-ink/60">
-            This mentor profile doesn't exist.
-          </p>
+          <h1 className="font-display mt-8 text-3xl">Mentor not found</h1>
+          <p className="mt-3 text-ink/60">This mentor profile doesn't exist.</p>
         </div>
       </main>
     );
   }
 
-  function generateResponse(userMessage: string) {
-    const lowerMessage = userMessage.toLowerCase();
-
-    if (
-      lowerMessage.includes("career") ||
-      lowerMessage.includes("job") ||
-      lowerMessage.includes("future")
-    ) {
-      return `That's a good place to start. Tell me a little more about your current situation, your experience so far, and where you'd ideally like to go. Then we can break your next steps into something practical.`;
-    }
-
-    if (
-      lowerMessage.includes("learn") ||
-      lowerMessage.includes("skill") ||
-      lowerMessage.includes("course")
-    ) {
-      return `Let's focus on the skills that will actually move you forward. Tell me what you already know and what role or goal you're aiming for, and I'll help you build a practical learning path.`;
-    }
-
-    if (
-      lowerMessage.includes("college") ||
-      lowerMessage.includes("student") ||
-      lowerMessage.includes("study")
-    ) {
-      return `You don't need to have your entire future figured out right now. Tell me what you're studying, what options you're considering, and what's making the decision difficult.`;
-    }
-
-    return `I understand. Let's break this down properly. Can you tell me more about your current situation, what you've already tried, and what outcome you're hoping for?`;
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedMessage = message.trim();
-
-    if (!trimmedMessage) return;
+    if (!trimmedMessage || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now(),
@@ -98,19 +64,52 @@ export default function AiMentorPage() {
       content: trimmedMessage,
     };
 
-    const mentorMessage: Message = {
-      id: Date.now() + 1,
-      role: "mentor",
-      content: generateResponse(trimmedMessage),
-    };
+    const updatedMessages = [...messages, userMessage];
 
-    setMessages((current) => [
-      ...current,
-      userMessage,
-      mentorMessage,
-    ]);
-
+    setMessages(updatedMessages);
     setMessage("");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/ai-mentor/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mentorId: mentor.id,
+          messages: updatedMessages.map((item) => ({
+            role: item.role === "mentor" ? "assistant" : "user",
+            content: item.content,
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "The mentor could not respond.");
+      }
+
+      setMessages((current) => [
+        ...current,
+        {
+          id: Date.now() + 1,
+          role: "mentor",
+          content: data.reply,
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -133,14 +132,8 @@ export default function AiMentorPage() {
           </div>
 
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl">
-              {mentor.name}
-            </h1>
-
-            <p className="mt-1 text-sm text-ink/60">
-              {mentor.profession}
-            </p>
-
+            <h1 className="font-display text-2xl sm:text-3xl">{mentor.name}</h1>
+            <p className="mt-1 text-sm text-ink/60">{mentor.profession}</p>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/70">
               {mentor.bio}
             </p>
@@ -161,32 +154,41 @@ export default function AiMentorPage() {
                 {item.content}
               </div>
             ))}
+
+            {isLoading && (
+              <div className="mr-auto rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm text-ink/60">
+                {mentor.name.split(" ")[0]} is thinking...
+              </div>
+            )}
           </div>
 
           <form
             onSubmit={handleSubmit}
             className="sticky bottom-0 border-t border-ink/10 bg-paper pt-5"
           >
+            {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
+
             <div className="flex gap-3">
               <input
                 type="text"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
+                disabled={isLoading}
                 placeholder={`Ask ${mentor.name.split(" ")[0]} anything...`}
-                className="input flex-1"
+                className="input flex-1 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="submit"
-                className="rounded-sm bg-amber px-5 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95"
+                disabled={isLoading || !message.trim()}
+                className="rounded-sm bg-amber px-5 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send →
+                {isLoading ? "Thinking..." : "Send →"}
               </button>
             </div>
 
             <p className="mt-3 text-center text-xs text-ink/40">
-              This is an AI-powered virtual mentor. Guidance is for
-              informational and career support purposes.
+              This is an AI-powered virtual mentor. Guidance is for informational and career support purposes.
             </p>
           </form>
         </section>
