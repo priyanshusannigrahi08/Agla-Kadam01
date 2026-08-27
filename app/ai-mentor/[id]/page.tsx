@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
-import { virtualMentors } from "@/data/virtualMentors";
+import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Message = {
   id: number;
