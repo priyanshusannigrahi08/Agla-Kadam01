@@ -18,6 +18,7 @@ type Mentor = {
   linkedin?: string;
   calendly?: string;
   photo_url?: string;
+  created_at?: string;
 };
 
 type Rating = {
@@ -61,7 +62,6 @@ export default function MentorsPage() {
         setRatings((ratingData || []) as Rating[]);
       } catch (err) {
         console.error(err);
-
         setError(
           "We couldn't load the mentors right now. Please refresh and try again."
         );
@@ -100,12 +100,10 @@ export default function MentorsPage() {
   const query = search.trim().toLowerCase();
 
   const filteredVirtualMentors = useMemo(() => {
-    if (!query) {
-      return virtualMentors;
-    }
+    if (!query) return virtualMentors;
 
-    return virtualMentors.filter((mentor) => {
-      return [
+    return virtualMentors.filter((mentor) =>
+      [
         mentor.name,
         mentor.profession,
         mentor.bio,
@@ -113,14 +111,12 @@ export default function MentorsPage() {
       ]
         .join(" ")
         .toLowerCase()
-        .includes(query);
-    });
+        .includes(query)
+    );
   }, [query]);
 
   const filteredHumanMentors = useMemo(() => {
-    if (!query) {
-      return mentors;
-    }
+    if (!query) return mentors;
 
     return mentors.filter((mentor) =>
       [
@@ -143,16 +139,12 @@ export default function MentorsPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <div className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
-        {/* BACK BUTTON */}
-
         <Link
           href="/"
           className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
         >
           ← Back to AglaKadam
         </Link>
-
-        {/* PAGE HEADER */}
 
         <h1 className="font-display mt-6 mb-2 text-3xl sm:text-4xl">
           Browse mentors
@@ -163,8 +155,6 @@ export default function MentorsPage() {
           your options, and move forward with more clarity.
         </p>
 
-        {/* SEARCH */}
-
         <input
           type="text"
           value={search}
@@ -173,9 +163,7 @@ export default function MentorsPage() {
           className="input mb-12 max-w-xl"
         />
 
-        {/* =====================================================
-            VIRTUAL MENTORS
-        ====================================================== */}
+        {/* VIRTUAL MENTORS */}
 
         {filteredVirtualMentors.length > 0 && (
           <section className="mb-20">
@@ -200,8 +188,6 @@ export default function MentorsPage() {
                   key={mentor.id}
                   className="pin-shadow flex flex-col rounded-sm border border-ink/10 bg-white p-6"
                 >
-                  {/* PROFILE */}
-
                   <div className="mb-5 flex items-center gap-4">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-paper">
                       <img
@@ -222,8 +208,6 @@ export default function MentorsPage() {
                     </div>
                   </div>
 
-                  {/* EXPERTISE */}
-
                   <div className="mb-4 flex flex-wrap gap-2">
                     {mentor.expertise.slice(0, 3).map((skill) => (
                       <span
@@ -235,13 +219,9 @@ export default function MentorsPage() {
                     ))}
                   </div>
 
-                  {/* BIO */}
-
                   <p className="font-body mb-6 flex-1 text-sm leading-relaxed text-ink/70">
                     {mentor.bio}
                   </p>
-
-                  {/* CTA */}
 
                   <Link
                     href={`/ai-mentor/${mentor.id}`}
@@ -255,9 +235,7 @@ export default function MentorsPage() {
           </section>
         )}
 
-        {/* =====================================================
-            HUMAN MENTORS
-        ====================================================== */}
+        {/* HUMAN MENTORS */}
 
         <section>
           <div className="mb-8">
@@ -275,21 +253,15 @@ export default function MentorsPage() {
             </p>
           </div>
 
-          {/* LOADING */}
-
           {loading && (
             <p className="font-mono text-sm text-ink/50">
               Loading mentors…
             </p>
           )}
 
-          {/* ERROR */}
-
           {!loading && error && (
             <p className="text-sm text-red-700">{error}</p>
           )}
-
-          {/* EMPTY */}
 
           {!loading &&
             !error &&
@@ -300,8 +272,6 @@ export default function MentorsPage() {
                 </p>
               </div>
             )}
-
-          {/* HUMAN MENTOR GRID */}
 
           <div className="grid gap-6 sm:grid-cols-2">
             {!loading &&
@@ -321,8 +291,6 @@ export default function MentorsPage() {
                     key={mentor.id}
                     className="pin-shadow flex flex-col rounded-sm border border-ink/10 bg-white p-6"
                   >
-                    {/* PROFILE */}
-
                     <div className="mb-5 flex items-center gap-4">
                       {mentor.photo_url ? (
                         <img
@@ -353,18 +321,13 @@ export default function MentorsPage() {
                       </div>
                     </div>
 
-                    {/* RATING */}
-
                     {average && (
                       <p className="mb-3 text-xs text-ink/60">
                         <span className="mr-1 text-amber">★</span>
-
                         {average} ({rating.count}{" "}
                         {rating.count === 1 ? "review" : "reviews"})
                       </p>
                     )}
-
-                    {/* BIO */}
 
                     <p className="font-body mb-4 flex-1 text-sm leading-relaxed text-ink/70">
                       {mentor.bio ||
@@ -372,15 +335,11 @@ export default function MentorsPage() {
                         "Experience and guidance for your next step."}
                     </p>
 
-                    {/* EXPERTISE */}
-
                     {mentor.expertise && mentor.bio && (
                       <p className="font-body mb-4 text-xs text-ink/50">
                         <strong>Expertise:</strong> {mentor.expertise}
                       </p>
                     )}
-
-                    {/* BUTTONS */}
 
                     <div className="mt-auto flex flex-wrap gap-3">
                       {mentor.calendly && (
