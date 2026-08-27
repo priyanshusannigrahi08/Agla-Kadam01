@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { virtualMentors } from "@/data/virtualMentors";
+import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Mentor = {
   id: string;
