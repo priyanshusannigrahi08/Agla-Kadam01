@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { virtualMentors } from "@/lib/virtualMentors";
+import { virtualMentors } from "@/data/virtualMentors";
 
 type Mentor = {
   id: string;
