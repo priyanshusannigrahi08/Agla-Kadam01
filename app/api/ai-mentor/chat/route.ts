@@ -62,7 +62,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-5-mini",
+        model: "gpt-5.5",
         instructions,
         input: conversation.map((message) => ({
           role: message.role,
