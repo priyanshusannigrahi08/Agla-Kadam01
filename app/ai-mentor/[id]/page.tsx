@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Message = {
@@ -11,34 +12,9 @@ type Message = {
   content: string;
 };
 
-function formatMentorResponse(content: string) {
-  return content
-    // Put markdown headings onto separate lines
-    .replace(/\s+(#{1,6}\s)/g, "\n\n$1")
-
-    // Put numbered steps onto separate lines
-    .replace(/\s+(\d+\.\s+)/g, "\n\n$1")
-
-    // Put bullet points onto separate lines
-    .replace(/\s+([-*]\s+)/g, "\n\n$1")
-
-    // Remove markdown heading symbols
-    .replace(/^#{1,6}\s*/gm, "")
-
-    // Remove bold markdown symbols
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-
-    // Clean excessive blank lines
-    .replace(/\n{3,}/g, "\n\n")
-
-    .trim();
-}
-
 export default function AiMentorPage() {
   const params = useParams<{ id: string }>();
-
-  const mentorId =
-    typeof params.id === "string" ? params.id : "";
+  const mentorId = typeof params.id === "string" ? params.id : "";
 
   const mentor = useMemo(
     () => virtualMentors.find((item) => item.id === mentorId),
@@ -48,7 +24,6 @@ export default function AiMentorPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [messages, setMessages] = useState<Message[]>([]);
 
   if (!mentor) {
@@ -85,9 +60,7 @@ export default function AiMentorPage() {
           },
         ];
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedMessage = message.trim();
@@ -111,32 +84,32 @@ export default function AiMentorPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "/api/ai-mentor/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            mentorId: mentor.id,
-            messages: updatedMessages.map((item) => ({
-              role:
-                item.role === "mentor"
-                  ? "assistant"
-                  : "user",
-              content: item.content,
-            })),
-          }),
-        }
-      );
+      const response = await fetch("/api/ai-mentor/chat", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          mentorId: mentor.id,
+
+          messages: updatedMessages.map((item) => ({
+            role:
+              item.role === "mentor"
+                ? "assistant"
+                : "user",
+
+            content: item.content,
+          })),
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            "The mentor could not respond."
+          data.error || "The mentor could not respond."
         );
       }
 
@@ -163,8 +136,8 @@ export default function AiMentorPage() {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 sm:py-12">
-
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-8 sm:py-12">
+        
         <Link
           href="/mentors"
           className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
@@ -173,7 +146,6 @@ export default function AiMentorPage() {
         </Link>
 
         <section className="mb-8 flex items-center gap-5 border-b border-ink/10 pb-8">
-
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-board/10">
             <img
               src={mentor.image}
@@ -198,37 +170,40 @@ export default function AiMentorPage() {
         </section>
 
         <section className="flex flex-1 flex-col">
-
-          <div className="flex flex-1 flex-col gap-4 pb-8">
+          <div className="flex flex-1 flex-col gap-5 pb-8">
 
             {displayedMessages.map((item) => (
               <div
                 key={item.id}
                 className={
                   item.role === "user"
-                    ? "ml-auto max-w-[85%] whitespace-pre-wrap rounded-sm bg-board px-4 py-3 text-sm leading-relaxed text-white"
-                    : "mr-auto max-w-[85%] whitespace-pre-wrap rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm leading-relaxed text-ink"
+                    ? "ml-auto max-w-[80%] rounded-md bg-board px-5 py-4 text-sm leading-relaxed text-white"
+                    : "mr-auto max-w-[85%] rounded-md border border-ink/10 bg-white px-5 py-4 text-sm leading-relaxed text-ink shadow-sm"
                 }
               >
-                {item.role === "mentor"
-                  ? formatMentorResponse(item.content)
-                  : item.content}
+                {item.role === "mentor" ? (
+                  <div className="prose prose-sm max-w-none prose-headings:font-display prose-headings:text-ink prose-p:text-ink prose-strong:text-ink prose-li:text-ink">
+                    <ReactMarkdown>
+                      {item.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  item.content
+                )}
               </div>
             ))}
 
             {isLoading && (
-              <div className="mr-auto rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm text-ink/60">
+              <div className="mr-auto rounded-md border border-ink/10 bg-white px-5 py-4 text-sm text-ink/60 shadow-sm">
                 {mentor.name.split(" ")[0]} is thinking...
               </div>
             )}
-
           </div>
 
           <form
             onSubmit={handleSubmit}
             className="sticky bottom-0 border-t border-ink/10 bg-paper pt-5"
           >
-
             {error && (
               <p className="mb-3 text-sm text-red-700">
                 {error}
@@ -236,7 +211,6 @@ export default function AiMentorPage() {
             )}
 
             <div className="flex gap-3">
-
               <input
                 type="text"
                 value={message}
@@ -252,27 +226,19 @@ export default function AiMentorPage() {
 
               <button
                 type="submit"
-                disabled={
-                  isLoading || !message.trim()
-                }
-                className="rounded-sm bg-amber px-5 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isLoading || !message.trim()}
+                className="rounded-sm bg-amber px-6 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading
-                  ? "Thinking..."
-                  : "Send →"}
+                {isLoading ? "Thinking..." : "Send →"}
               </button>
-
             </div>
 
             <p className="mt-3 text-center text-xs text-ink/40">
-              This is an AI-powered virtual mentor.
-              Guidance is for informational and career support purposes.
+              This is an AI-powered virtual mentor. Guidance is for
+              informational and career support purposes.
             </p>
-
           </form>
-
         </section>
-
       </div>
     </main>
   );
