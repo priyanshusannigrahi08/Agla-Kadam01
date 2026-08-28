@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Message = {
@@ -12,9 +11,34 @@ type Message = {
   content: string;
 };
 
+function formatMentorResponse(content: string) {
+  return content
+    // Put markdown headings onto separate lines
+    .replace(/\s+(#{1,6}\s)/g, "\n\n$1")
+
+    // Put numbered steps onto separate lines
+    .replace(/\s+(\d+\.\s+)/g, "\n\n$1")
+
+    // Put bullet points onto separate lines
+    .replace(/\s+([-*]\s+)/g, "\n\n$1")
+
+    // Remove markdown heading symbols
+    .replace(/^#{1,6}\s*/gm, "")
+
+    // Remove bold markdown symbols
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+
+    // Clean excessive blank lines
+    .replace(/\n{3,}/g, "\n\n")
+
+    .trim();
+}
+
 export default function AiMentorPage() {
   const params = useParams<{ id: string }>();
-  const mentorId = typeof params.id === "string" ? params.id : "";
+
+  const mentorId =
+    typeof params.id === "string" ? params.id : "";
 
   const mentor = useMemo(
     () => virtualMentors.find((item) => item.id === mentorId),
@@ -24,6 +48,7 @@ export default function AiMentorPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
   const [messages, setMessages] = useState<Message[]>([]);
 
   if (!mentor) {
@@ -60,7 +85,9 @@ export default function AiMentorPage() {
           },
         ];
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     const trimmedMessage = message.trim();
@@ -73,7 +100,10 @@ export default function AiMentorPage() {
       content: trimmedMessage,
     };
 
-    const updatedMessages = [...displayedMessages, userMessage];
+    const updatedMessages = [
+      ...displayedMessages,
+      userMessage,
+    ];
 
     setMessages(updatedMessages);
     setMessage("");
@@ -81,25 +111,32 @@ export default function AiMentorPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai-mentor/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mentorId: mentor.id,
-          messages: updatedMessages.map((item) => ({
-            role: item.role === "mentor" ? "assistant" : "user",
-            content: item.content,
-          })),
-        }),
-      });
+      const response = await fetch(
+        "/api/ai-mentor/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mentorId: mentor.id,
+            messages: updatedMessages.map((item) => ({
+              role:
+                item.role === "mentor"
+                  ? "assistant"
+                  : "user",
+              content: item.content,
+            })),
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "The mentor could not respond."
+          data.error ||
+            "The mentor could not respond."
         );
       }
 
@@ -127,6 +164,7 @@ export default function AiMentorPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 sm:py-12">
+
         <Link
           href="/mentors"
           className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
@@ -135,6 +173,7 @@ export default function AiMentorPage() {
         </Link>
 
         <section className="mb-8 flex items-center gap-5 border-b border-ink/10 pb-8">
+
           <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-board/10">
             <img
               src={mentor.image}
@@ -159,105 +198,21 @@ export default function AiMentorPage() {
         </section>
 
         <section className="flex flex-1 flex-col">
+
           <div className="flex flex-1 flex-col gap-4 pb-8">
+
             {displayedMessages.map((item) => (
               <div
                 key={item.id}
                 className={
                   item.role === "user"
-                    ? "ml-auto max-w-[85%] rounded-sm bg-board px-4 py-3 text-sm leading-relaxed text-white"
-                    : "mr-auto max-w-[85%] rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm leading-relaxed text-ink"
+                    ? "ml-auto max-w-[85%] whitespace-pre-wrap rounded-sm bg-board px-4 py-3 text-sm leading-relaxed text-white"
+                    : "mr-auto max-w-[85%] whitespace-pre-wrap rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm leading-relaxed text-ink"
                 }
               >
-                {item.role === "mentor" ? (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => (
-                        <p className="mb-3 last:mb-0">
-                          {children}
-                        </p>
-                      ),
-
-                      strong: ({ children }) => (
-                        <strong className="font-bold">
-                          {children}
-                        </strong>
-                      ),
-
-                      em: ({ children }) => (
-                        <em>{children}</em>
-                      ),
-
-                      ul: ({ children }) => (
-                        <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">
-                          {children}
-                        </ul>
-                      ),
-
-                      ol: ({ children }) => (
-                        <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">
-                          {children}
-                        </ol>
-                      ),
-
-                      li: ({ children }) => (
-                        <li>{children}</li>
-                      ),
-
-                      code: ({ children, className }) => {
-                        const isBlock = className?.includes("language-");
-
-                        if (isBlock) {
-                          return (
-                            <code className="block overflow-x-auto rounded-sm bg-ink px-4 py-3 font-mono text-xs text-white">
-                              {children}
-                            </code>
-                          );
-                        }
-
-                        return (
-                          <code className="rounded bg-ink/10 px-1 py-0.5 font-mono text-[0.85em]">
-                            {children}
-                          </code>
-                        );
-                      },
-
-                      pre: ({ children }) => (
-                        <pre className="mb-3 overflow-x-auto rounded-sm bg-ink p-4 text-xs text-white">
-                          {children}
-                        </pre>
-                      ),
-
-                      h1: ({ children }) => (
-                        <h1 className="mb-3 text-xl font-bold">
-                          {children}
-                        </h1>
-                      ),
-
-                      h2: ({ children }) => (
-                        <h2 className="mb-3 text-lg font-bold">
-                          {children}
-                        </h2>
-                      ),
-
-                      h3: ({ children }) => (
-                        <h3 className="mb-2 text-base font-bold">
-                          {children}
-                        </h3>
-                      ),
-
-                      blockquote: ({ children }) => (
-                        <blockquote className="mb-3 border-l-2 border-board/40 pl-3 italic text-ink/70">
-                          {children}
-                        </blockquote>
-                      ),
-                    }}
-                  >
-                    {item.content}
-                  </ReactMarkdown>
-                ) : (
-                  item.content
-                )}
+                {item.role === "mentor"
+                  ? formatMentorResponse(item.content)
+                  : item.content}
               </div>
             ))}
 
@@ -266,12 +221,14 @@ export default function AiMentorPage() {
                 {mentor.name.split(" ")[0]} is thinking...
               </div>
             )}
+
           </div>
 
           <form
             onSubmit={handleSubmit}
             className="sticky bottom-0 border-t border-ink/10 bg-paper pt-5"
           >
+
             {error && (
               <p className="mb-3 text-sm text-red-700">
                 {error}
@@ -279,30 +236,43 @@ export default function AiMentorPage() {
             )}
 
             <div className="flex gap-3">
+
               <input
                 type="text"
                 value={message}
-                onChange={(event) => setMessage(event.target.value)}
+                onChange={(event) =>
+                  setMessage(event.target.value)
+                }
                 disabled={isLoading}
-                placeholder={`Ask ${mentor.name.split(" ")[0]} anything...`}
+                placeholder={`Ask ${
+                  mentor.name.split(" ")[0]
+                } anything...`}
                 className="input flex-1 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="submit"
-                disabled={isLoading || !message.trim()}
+                disabled={
+                  isLoading || !message.trim()
+                }
                 className="rounded-sm bg-amber px-5 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "Thinking..." : "Send →"}
+                {isLoading
+                  ? "Thinking..."
+                  : "Send →"}
               </button>
+
             </div>
 
             <p className="mt-3 text-center text-xs text-ink/40">
-              This is an AI-powered virtual mentor. Guidance is for
-              informational and career support purposes.
+              This is an AI-powered virtual mentor.
+              Guidance is for informational and career support purposes.
             </p>
+
           </form>
+
         </section>
+
       </div>
     </main>
   );
