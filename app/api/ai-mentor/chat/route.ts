@@ -15,11 +15,40 @@ function normalizeMentorId(value: unknown) {
     .replace(/\s+/g, "-");
 }
 
+function getApiKey() {
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+}
+
+async function generateWithGemini(
+  model: string,
+  apiKey: string,
+  systemInstruction: string,
+  contents: unknown[]
+) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents,
+      }),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = getApiKey();
+
+    if (!apiKey) {
+      console.error("Gemini API key is missing");
       return NextResponse.json(
-        { error: "AI service is not configured." },
+        { error: "AI service is not configured. Please add GEMINI_API_KEY to Vercel." },
         { status: 500 }
       );
     }
@@ -38,10 +67,7 @@ export async function POST(request: NextRequest) {
         availableMentorIds: virtualMentors.map((item) => item.id),
       });
 
-      return NextResponse.json(
-        { error: "Mentor not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Mentor not found." }, { status: 404 });
     }
 
     const conversation: ChatMessage[] = messages
@@ -76,36 +102,56 @@ Keep answers concise unless the user asks for a detailed plan.`;
       parts: [{ text: message.content }],
     }));
 
-    const model = "gemini-2.5-flash";
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents,
-        }),
-      }
-    );
+    // Try the current fast model first, then fall back to a widely available model.
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+    let lastError: unknown = null;
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API error:", data);
-      return NextResponse.json(
-        { error: "The mentor could not respond right now." },
-        { status: response.status }
+    for (const model of models) {
+      const { response, data } = await generateWithGemini(
+        model,
+        apiKey,
+        systemInstruction,
+        contents
       );
+
+      if (response.ok) {
+        const reply =
+          data?.candidates?.[0]?.content?.parts
+            ?.map((part: { text?: string }) => part.text ?? "")
+            .join("")
+            .trim();
+
+        if (reply) {
+          return NextResponse.json({ reply });
+        }
+
+        lastError = { model, message: "Gemini returned an empty response" };
+        continue;
+      }
+
+      lastError = { model, status: response.status, data };
+      console.error("Gemini API error", lastError);
+
+      // Authentication and quota errors will affect every model, so don't retry unnecessarily.
+      if (response.status === 401 || response.status === 403 || response.status === 429) {
+        break;
+      }
     }
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts
-        ?.map((part: { text?: string }) => part.text ?? "")
-        .join("")
-        .trim() || "I'm sorry, I couldn't generate a response. Please try again.";
+    const status =
+      typeof lastError === "object" && lastError !== null && "status" in lastError
+        ? Number((lastError as { status?: number }).status) || 502
+        : 502;
 
-    return NextResponse.json({ reply });
+    let error = "The mentor could not respond right now. Please try again.";
+
+    if (status === 401 || status === 403) {
+      error = "The AI service API key was rejected. Check GEMINI_API_KEY in Vercel.";
+    } else if (status === 429) {
+      error = "The AI service is temporarily rate-limited. Please try again shortly.";
+    }
+
+    return NextResponse.json({ error }, { status });
   } catch (error) {
     console.error("AI mentor route error:", error);
     return NextResponse.json(
