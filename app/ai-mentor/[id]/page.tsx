@@ -65,7 +65,7 @@ export default function AiMentorPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mentorId: mentor.id,
+         mentorId: mentor!.id,
           messages: updatedMessages.map((item) => ({
             role: item.role === "mentor" ? "assistant" : "user",
             content: item.content,
