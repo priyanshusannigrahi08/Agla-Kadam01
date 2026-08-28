@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Message = {
@@ -10,167 +11,6 @@ type Message = {
   role: "mentor" | "user";
   content: string;
 };
-
-function renderInlineMarkdown(text: string) {
-  const parts = text.split(/(\*\*.*?\*\*|`.*?`|\*.*?\*)/g);
-
-  return parts.map((part, index) => {
-    if (
-      part.startsWith("**") &&
-      part.endsWith("**") &&
-      part.length > 4
-    ) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
-    }
-
-    if (
-      part.startsWith("`") &&
-      part.endsWith("`") &&
-      part.length > 2
-    ) {
-      return (
-        <code
-          key={index}
-          className="rounded bg-ink/10 px-1.5 py-0.5 font-mono text-[0.85em]"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-
-    if (
-      part.startsWith("*") &&
-      part.endsWith("*") &&
-      !part.startsWith("**") &&
-      part.length > 2
-    ) {
-      return <em key={index}>{part.slice(1, -1)}</em>;
-    }
-
-    return part;
-  });
-}
-
-function MarkdownMessage({ content }: { content: string }) {
-  const lines = content.split("\n");
-
-  const elements: React.ReactNode[] = [];
-  let bulletItems: string[] = [];
-  let numberedItems: string[] = [];
-  let codeLines: string[] = [];
-  let inCodeBlock = false;
-
-  const flushBullets = () => {
-    if (bulletItems.length > 0) {
-      elements.push(
-        <ul
-          key={`ul-${elements.length}`}
-          className="my-2 list-disc space-y-1 pl-5"
-        >
-          {bulletItems.map((item, index) => (
-            <li key={index}>{renderInlineMarkdown(item)}</li>
-          ))}
-        </ul>
-      );
-
-      bulletItems = [];
-    }
-  };
-
-  const flushNumbers = () => {
-    if (numberedItems.length > 0) {
-      elements.push(
-        <ol
-          key={`ol-${elements.length}`}
-          className="my-2 list-decimal space-y-1 pl-5"
-        >
-          {numberedItems.map((item, index) => (
-            <li key={index}>{renderInlineMarkdown(item)}</li>
-          ))}
-        </ol>
-      );
-
-      numberedItems = [];
-    }
-  };
-
-  const flushCode = () => {
-    if (codeLines.length > 0) {
-      elements.push(
-        <pre
-          key={`code-${elements.length}`}
-          className="my-3 overflow-x-auto rounded-sm bg-ink px-4 py-3 text-xs leading-relaxed text-white"
-        >
-          <code>{codeLines.join("\n")}</code>
-        </pre>
-      );
-
-      codeLines = [];
-    }
-  };
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith("```")) {
-      if (inCodeBlock) {
-        flushCode();
-        inCodeBlock = false;
-      } else {
-        flushBullets();
-        flushNumbers();
-        inCodeBlock = true;
-      }
-
-      return;
-    }
-
-    if (inCodeBlock) {
-      codeLines.push(line);
-      return;
-    }
-
-    const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
-    const numberMatch = trimmed.match(/^\d+[.)]\s+(.*)$/);
-
-    if (bulletMatch) {
-      flushNumbers();
-      bulletItems.push(bulletMatch[1]);
-      return;
-    }
-
-    if (numberMatch) {
-      flushBullets();
-      numberedItems.push(numberMatch[1]);
-      return;
-    }
-
-    flushBullets();
-    flushNumbers();
-
-    if (!trimmed) {
-      return;
-    }
-
-    elements.push(
-      <p
-        key={`p-${index}`}
-        className={elements.length > 0 ? "mt-2" : ""}
-      >
-        {renderInlineMarkdown(trimmed)}
-      </p>
-    );
-  });
-
-  flushBullets();
-  flushNumbers();
-
-  if (inCodeBlock) {
-    flushCode();
-  }
-
-  return <>{elements}</>;
-}
 
 export default function AiMentorPage() {
   const params = useParams<{ id: string }>();
@@ -243,14 +83,11 @@ export default function AiMentorPage() {
     try {
       const response = await fetch("/api/ai-mentor/chat", {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: JSON.stringify({
           mentorId: mentor.id,
-
           messages: updatedMessages.map((item) => ({
             role: item.role === "mentor" ? "assistant" : "user",
             content: item.content,
@@ -290,7 +127,6 @@ export default function AiMentorPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 sm:py-12">
-
         <Link
           href="/mentors"
           className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
@@ -323,9 +159,7 @@ export default function AiMentorPage() {
         </section>
 
         <section className="flex flex-1 flex-col">
-
           <div className="flex flex-1 flex-col gap-4 pb-8">
-
             {displayedMessages.map((item) => (
               <div
                 key={item.id}
@@ -336,7 +170,91 @@ export default function AiMentorPage() {
                 }
               >
                 {item.role === "mentor" ? (
-                  <MarkdownMessage content={item.content} />
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => (
+                        <p className="mb-3 last:mb-0">
+                          {children}
+                        </p>
+                      ),
+
+                      strong: ({ children }) => (
+                        <strong className="font-bold">
+                          {children}
+                        </strong>
+                      ),
+
+                      em: ({ children }) => (
+                        <em>{children}</em>
+                      ),
+
+                      ul: ({ children }) => (
+                        <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">
+                          {children}
+                        </ul>
+                      ),
+
+                      ol: ({ children }) => (
+                        <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">
+                          {children}
+                        </ol>
+                      ),
+
+                      li: ({ children }) => (
+                        <li>{children}</li>
+                      ),
+
+                      code: ({ children, className }) => {
+                        const isBlock = className?.includes("language-");
+
+                        if (isBlock) {
+                          return (
+                            <code className="block overflow-x-auto rounded-sm bg-ink px-4 py-3 font-mono text-xs text-white">
+                              {children}
+                            </code>
+                          );
+                        }
+
+                        return (
+                          <code className="rounded bg-ink/10 px-1 py-0.5 font-mono text-[0.85em]">
+                            {children}
+                          </code>
+                        );
+                      },
+
+                      pre: ({ children }) => (
+                        <pre className="mb-3 overflow-x-auto rounded-sm bg-ink p-4 text-xs text-white">
+                          {children}
+                        </pre>
+                      ),
+
+                      h1: ({ children }) => (
+                        <h1 className="mb-3 text-xl font-bold">
+                          {children}
+                        </h1>
+                      ),
+
+                      h2: ({ children }) => (
+                        <h2 className="mb-3 text-lg font-bold">
+                          {children}
+                        </h2>
+                      ),
+
+                      h3: ({ children }) => (
+                        <h3 className="mb-2 text-base font-bold">
+                          {children}
+                        </h3>
+                      ),
+
+                      blockquote: ({ children }) => (
+                        <blockquote className="mb-3 border-l-2 border-board/40 pl-3 italic text-ink/70">
+                          {children}
+                        </blockquote>
+                      ),
+                    }}
+                  >
+                    {item.content}
+                  </ReactMarkdown>
                 ) : (
                   item.content
                 )}
@@ -348,14 +266,12 @@ export default function AiMentorPage() {
                 {mentor.name.split(" ")[0]} is thinking...
               </div>
             )}
-
           </div>
 
           <form
             onSubmit={handleSubmit}
             className="sticky bottom-0 border-t border-ink/10 bg-paper pt-5"
           >
-
             {error && (
               <p className="mb-3 text-sm text-red-700">
                 {error}
@@ -363,7 +279,6 @@ export default function AiMentorPage() {
             )}
 
             <div className="flex gap-3">
-
               <input
                 type="text"
                 value={message}
@@ -380,14 +295,12 @@ export default function AiMentorPage() {
               >
                 {isLoading ? "Thinking..." : "Send →"}
               </button>
-
             </div>
 
             <p className="mt-3 text-center text-xs text-ink/40">
               This is an AI-powered virtual mentor. Guidance is for
               informational and career support purposes.
             </p>
-
           </form>
         </section>
       </div>
