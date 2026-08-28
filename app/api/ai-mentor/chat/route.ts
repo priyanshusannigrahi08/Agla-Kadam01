@@ -8,12 +8,9 @@ type ChatMessage = {
   content: string;
 };
 
-type GeminiError = {
-  error?: {
-    message?: string;
-    status?: string;
-    code?: number;
-  };
+type GeminiModel = {
+  name?: string;
+  supportedGenerationMethods?: string[];
 };
 
 function normalizeMentorId(value: unknown) {
@@ -43,6 +40,40 @@ function getGeminiErrorMessage(data: unknown) {
   return "Unknown Gemini API error";
 }
 
+async function getAvailableModels(apiKey: string) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+    { cache: "no-store" }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      status: response.status,
+      message: getGeminiErrorMessage(data),
+      models: [] as string[],
+    };
+  }
+
+  const models = Array.isArray(data?.models)
+    ? (data.models as GeminiModel[])
+        .filter((model) =>
+          model.name &&
+          model.supportedGenerationMethods?.includes("generateContent")
+        )
+        .map((model) => model.name!.replace(/^models\//, ""))
+    : [];
+
+  return {
+    ok: true as const,
+    status: response.status,
+    message: "",
+    models,
+  };
+}
+
 async function generateWithGemini(
   model: string,
   apiKey: string,
@@ -50,12 +81,10 @@ async function generateWithGemini(
   contents: unknown[]
 ) {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         system_instruction: {
           parts: [{ text: systemInstruction }],
@@ -79,10 +108,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          error:
-            "AI service is not configured. Add GEMINI_API_KEY to Vercel and redeploy.",
-        },
+        { error: "AI service is not configured. Add GEMINI_API_KEY to Vercel and redeploy." },
         { status: 500 }
       );
     }
@@ -96,16 +122,12 @@ export async function POST(request: NextRequest) {
     );
 
     if (!mentor) {
-      return NextResponse.json(
-        { error: "Mentor not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Mentor not found." }, { status: 404 });
     }
 
     const conversation: ChatMessage[] = messages
       .filter((item: unknown): item is ChatMessage => {
         if (!item || typeof item !== "object") return false;
-
         const message = item as ChatMessage;
         return (
           (message.role === "user" || message.role === "assistant") &&
@@ -140,17 +162,47 @@ Keep answers concise unless the user asks for a detailed plan.`;
       parts: [{ text: message.content }],
     }));
 
-    // Try several Gemini models because availability can differ by API project and region.
-    const models = [
-      "gemini-2.5-flash-lite",
+    const available = await getAvailableModels(apiKey);
+
+    if (!available.ok) {
+      return NextResponse.json(
+        {
+          error: `Gemini could not list models for this API key: ${available.message}`,
+        },
+        { status: available.status === 401 || available.status === 403 ? available.status : 502 }
+      );
+    }
+
+    if (available.models.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "This Gemini API key has no models with generateContent access. Create a new Gemini API key in Google AI Studio and verify the key's project.",
+        },
+        { status: 502 }
+      );
+    }
+
+    const preferredNames = [
       "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
       "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
     ];
+
+    const preferred = preferredNames.filter((name) =>
+      available.models.includes(name)
+    );
+
+    const modelsToTry = [...preferred, ...available.models.filter(
+      (model) => !preferred.includes(model)
+    )].slice(0, 8);
 
     let lastStatus = 502;
     let lastMessage = "The AI service could not generate a response.";
 
-    for (const model of models) {
+    for (const model of modelsToTry) {
       const { response, data } = await generateWithGemini(
         model,
         apiKey,
@@ -182,7 +234,6 @@ Keep answers concise unless the user asks for a detailed plan.`;
         message: lastMessage,
       });
 
-      // These errors are not model-specific, so trying another model will not help.
       if (
         response.status === 400 ||
         response.status === 401 ||
@@ -193,50 +244,9 @@ Keep answers concise unless the user asks for a detailed plan.`;
       }
     }
 
-    if (lastStatus === 401 || lastStatus === 403) {
-      return NextResponse.json(
-        {
-          error:
-            "The Gemini API key was rejected or does not have access to the Gemini API. Check GEMINI_API_KEY in Vercel.",
-        },
-        { status: lastStatus }
-      );
-    }
-
-    if (lastStatus === 429) {
-      return NextResponse.json(
-        {
-          error:
-            "The AI service has reached its rate limit. Please wait a moment and try again.",
-        },
-        { status: 429 }
-      );
-    }
-
-    if (lastStatus === 400) {
-      return NextResponse.json(
-        {
-          error: `The Gemini request was rejected: ${lastMessage}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    if (lastStatus === 404) {
-      return NextResponse.json(
-        {
-          error:
-            "No configured Gemini model is available for this API key. Check the Google AI project and API key permissions.",
-        },
-        { status: 502 }
-      );
-    }
-
     return NextResponse.json(
-      {
-        error: `The mentor could not respond: ${lastMessage}`,
-      },
-      { status: 502 }
+      { error: `The mentor could not respond: ${lastMessage}` },
+      { status: lastStatus >= 400 && lastStatus < 500 ? lastStatus : 502 }
     );
   } catch (error) {
     console.error("AI mentor route error:", error);
