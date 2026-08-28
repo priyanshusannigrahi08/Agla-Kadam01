@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  FormEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { virtualMentors } from "@/app/data/virtualMentors";
 
 type Message = {
@@ -17,132 +11,104 @@ type Message = {
   content: string;
 };
 
-function MentorResponse({ content }: { content: string }) {
-  const lines = content.split("\n");
+function formatMessage(text: string) {
+  const lines = text.split("\n");
 
-  return (
-    <div className="space-y-3">
-      {lines.map((line, index) => {
-        const text = line.trim();
+  return lines.map((line, index) => {
+    const key = `${index}-${line.slice(0, 10)}`;
 
-        if (!text) return null;
+    if (line.trim().startsWith("### ")) {
+      return (
+        <h3 key={key} className="mt-3 text-base font-bold">
+          {formatInline(line.replace(/^###\s*/, ""))}
+        </h3>
+      );
+    }
 
-        // Markdown headings
-        if (text.startsWith("### ")) {
-          return (
-            <h3
-              key={index}
-              className="font-display text-lg font-semibold text-ink"
-            >
-              <InlineMarkdown text={text.replace(/^###\s*/, "")} />
-            </h3>
-          );
-        }
+    if (line.trim().startsWith("## ")) {
+      return (
+        <h2 key={key} className="mt-4 text-lg font-bold">
+          {formatInline(line.replace(/^##\s*/, ""))}
+        </h2>
+      );
+    }
 
-        if (text.startsWith("## ")) {
-          return (
-            <h2
-              key={index}
-              className="font-display text-xl font-semibold text-ink"
-            >
-              <InlineMarkdown text={text.replace(/^##\s*/, "")} />
-            </h2>
-          );
-        }
+    if (line.trim().startsWith("# ")) {
+      return (
+        <h1 key={key} className="mt-4 text-xl font-bold">
+          {formatInline(line.replace(/^#\s*/, ""))}
+        </h1>
+      );
+    }
 
-        if (text.startsWith("# ")) {
-          return (
-            <h2
-              key={index}
-              className="font-display text-xl font-semibold text-ink"
-            >
-              <InlineMarkdown text={text.replace(/^#\s*/, "")} />
-            </h2>
-          );
-        }
+    const numberedMatch = line.match(/^(\d+)\.\s+(.*)$/);
 
-        // Bullet points
-        if (
-          text.startsWith("- ") ||
-          text.startsWith("* ")
-        ) {
-          return (
-            <div
-              key={index}
-              className="flex gap-2 leading-relaxed"
-            >
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-board" />
+    if (numberedMatch) {
+      return (
+        <div
+          key={key}
+          className="flex gap-2 py-1"
+        >
+          <span className="font-semibold">
+            {numberedMatch[1]}.
+          </span>
 
-              <div className="flex-1">
-                <InlineMarkdown
-                  text={text.replace(/^[-*]\s*/, "")}
-                />
-              </div>
-            </div>
-          );
-        }
+          <span>
+            {formatInline(numberedMatch[2])}
+          </span>
+        </div>
+      );
+    }
 
-        // Numbered lists
-        const numberedMatch = text.match(
-          /^(\d+)\.\s+(.*)$/
-        );
+    if (
+      line.trim().startsWith("- ") ||
+      line.trim().startsWith("* ")
+    ) {
+      const content = line.trim().replace(/^[-*]\s+/, "");
 
-        if (numberedMatch) {
-          return (
-            <div
-              key={index}
-              className="flex gap-3 leading-relaxed"
-            >
-              <span className="font-semibold text-board">
-                {numberedMatch[1]}.
-              </span>
+      return (
+        <div
+          key={key}
+          className="flex gap-2 py-1"
+        >
+          <span>•</span>
 
-              <div className="flex-1">
-                <InlineMarkdown
-                  text={numberedMatch[2]}
-                />
-              </div>
-            </div>
-          );
-        }
+          <span>
+            {formatInline(content)}
+          </span>
+        </div>
+      );
+    }
 
-        return (
-          <p
-            key={index}
-            className="leading-relaxed text-ink/90"
-          >
-            <InlineMarkdown text={text} />
-          </p>
-        );
-      })}
-    </div>
-  );
+    if (!line.trim()) {
+      return <div key={key} className="h-2" />;
+    }
+
+    return (
+      <p key={key} className="py-1">
+        {formatInline(line)}
+      </p>
+    );
+  });
 }
 
-function InlineMarkdown({ text }: { text: string }) {
+function formatInline(text: string) {
   const parts = text.split(/(\*\*.*?\*\*)/g);
 
-  return (
-    <>
-      {parts.map((part, index) => {
-        if (
-          part.startsWith("**") &&
-          part.endsWith("**")
-        ) {
-          return (
-            <strong
-              key={index}
-              className="font-semibold text-ink"
-            >
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
+  return parts.map((part, index) => {
+    if (
+      part.startsWith("**") &&
+      part.endsWith("**")
+    ) {
+      return (
+        <strong key={index}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
 
-        return part;
-      })}
-    </>
-  );
+    return part;
+  });
 }
 
 export default function AiMentorPage() {
@@ -172,15 +138,6 @@ export default function AiMentorPage() {
 
   const [messages, setMessages] =
     useState<Message[]>([]);
-
-  const bottomRef =
-    useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages, isLoading]);
 
   if (!mentor) {
     return (
@@ -224,10 +181,7 @@ export default function AiMentorPage() {
     const trimmedMessage =
       message.trim();
 
-    if (
-      !trimmedMessage ||
-      isLoading
-    ) {
+    if (!trimmedMessage || isLoading) {
       return;
     }
 
@@ -269,8 +223,7 @@ export default function AiMentorPage() {
                       ? "assistant"
                       : "user",
 
-                  content:
-                    item.content,
+                  content: item.content,
                 })
               ),
           }),
@@ -287,14 +240,9 @@ export default function AiMentorPage() {
         );
       }
 
-      if (!data.reply) {
-        throw new Error(
-          "The mentor returned an empty response."
-        );
-      }
-
       setMessages((current) => [
         ...current,
+
         {
           id: Date.now() + 1,
           role: "mentor",
@@ -302,10 +250,7 @@ export default function AiMentorPage() {
         },
       ]);
     } catch (error) {
-      console.error(
-        "Mentor chat error:",
-        error
-      );
+      console.error(error);
 
       setError(
         error instanceof Error
@@ -317,41 +262,16 @@ export default function AiMentorPage() {
     }
   }
 
-  function handleKeyDown(
-    event: React.KeyboardEvent<
-      HTMLTextAreaElement
-    >
-  ) {
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey
-    ) {
-      event.preventDefault();
-
-      const form =
-        event.currentTarget.form;
-
-      if (form) {
-        form.requestSubmit();
-      }
-    }
-  }
-
   return (
     <main className="min-h-screen bg-paper text-ink">
-
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:py-12">
-
-        {/* Back button */}
+      <div className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-8 sm:py-12">
 
         <Link
           href="/mentors"
-          className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 transition hover:text-board"
+          className="mb-8 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"
         >
           ← Back to mentors
         </Link>
-
-        {/* Mentor profile */}
 
         <section className="mb-8 flex items-center gap-5 border-b border-ink/10 pb-8">
 
@@ -361,20 +281,11 @@ export default function AiMentorPage() {
               src={mentor.image}
               alt={`${mentor.name} profile`}
               className="h-full w-full object-cover"
-              onError={(event) => {
-                event.currentTarget.style.display =
-                  "none";
-              }}
             />
-
-            <span className="absolute text-xl font-semibold text-board">
-              {mentor.name.charAt(0)}
-            </span>
 
           </div>
 
           <div>
-
             <h1 className="font-display text-2xl sm:text-3xl">
               {mentor.name}
             </h1>
@@ -383,74 +294,44 @@ export default function AiMentorPage() {
               {mentor.profession}
             </p>
 
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink/70">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/70">
               {mentor.bio}
             </p>
-
           </div>
 
         </section>
 
-        {/* Chat */}
-
         <section className="flex flex-1 flex-col">
 
-          <div className="flex flex-1 flex-col gap-5 pb-10">
+          <div className="flex flex-1 flex-col gap-4 pb-8">
 
             {displayedMessages.map(
               (item) => (
-
                 <div
                   key={item.id}
                   className={
                     item.role === "user"
-                      ? "ml-auto max-w-[85%] rounded-lg bg-board px-5 py-4 text-sm leading-relaxed text-white shadow-sm"
-                      : "mr-auto max-w-[90%] rounded-lg border border-ink/10 bg-white px-5 py-4 text-sm shadow-sm"
+                      ? "ml-auto max-w-[85%] rounded-sm bg-board px-4 py-3 text-sm leading-relaxed text-white"
+                      : "mr-auto max-w-[85%] rounded-sm border border-ink/10 bg-white px-5 py-4 text-sm leading-relaxed text-ink"
                   }
                 >
-
-                  {item.role === "mentor" ? (
-                    <MentorResponse
-                      content={item.content}
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap">
-                      {item.content}
-                    </p>
-                  )}
-
+                  {item.role === "mentor"
+                    ? formatMessage(
+                        item.content
+                      )
+                    : item.content}
                 </div>
-
               )
             )}
 
             {isLoading && (
-
-              <div className="mr-auto flex items-center gap-3 rounded-lg border border-ink/10 bg-white px-5 py-4 text-sm text-ink/60 shadow-sm">
-
-                <div className="flex gap-1">
-
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-board" />
-
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-board [animation-delay:150ms]" />
-
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-board [animation-delay:300ms]" />
-
-                </div>
-
-                <span>
-                  {mentor.name.split(" ")[0]} is thinking...
-                </span>
-
+              <div className="mr-auto rounded-sm border border-ink/10 bg-white px-4 py-3 text-sm text-ink/60">
+                {mentor.name.split(" ")[0]} is
+                thinking...
               </div>
-
             )}
 
-            <div ref={bottomRef} />
-
           </div>
-
-          {/* Input */}
 
           <form
             onSubmit={handleSubmit}
@@ -458,31 +339,24 @@ export default function AiMentorPage() {
           >
 
             {error && (
-
-              <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-
+              <p className="mb-3 text-sm text-red-700">
                 {error}
-
-              </div>
-
+              </p>
             )}
 
-            <div className="flex items-end gap-3">
+            <div className="flex gap-3">
 
-              <textarea
+              <input
+                type="text"
                 value={message}
                 onChange={(event) =>
                   setMessage(
                     event.target.value
                   )
                 }
-                onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                rows={1}
-                placeholder={`Ask ${
-                  mentor.name.split(" ")[0]
-                } anything...`}
-                className="input min-h-[52px] flex-1 resize-none py-3 disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder={`Ask ${mentor.name.split(" ")[0]} anything...`}
+                className="input flex-1 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
@@ -491,7 +365,7 @@ export default function AiMentorPage() {
                   isLoading ||
                   !message.trim()
                 }
-                className="rounded-sm bg-amber px-6 py-4 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-sm bg-amber px-5 py-3 font-body text-sm font-semibold text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading
                   ? "Thinking..."
@@ -500,24 +374,10 @@ export default function AiMentorPage() {
 
             </div>
 
-            <div className="mt-3 flex justify-between gap-4 text-xs text-ink/40">
-
-              <p>
-                Press Enter to send
-              </p>
-
-              <p>
-                Shift + Enter for a new line
-              </p>
-
-            </div>
-
-            <p className="mt-2 text-center text-xs text-ink/40">
-
+            <p className="mt-3 text-center text-xs text-ink/40">
               This is an AI-powered virtual mentor.
               Guidance is for informational and
               career support purposes.
-
             </p>
 
           </form>
@@ -525,7 +385,6 @@ export default function AiMentorPage() {
         </section>
 
       </div>
-
     </main>
   );
 }
