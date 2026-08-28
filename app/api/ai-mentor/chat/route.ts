@@ -21,7 +21,11 @@ function normalizeMentorId(value: unknown) {
 }
 
 function getApiKey() {
-  return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+  return (
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    ""
+  );
 }
 
 function getGeminiErrorMessage(data: unknown) {
@@ -38,23 +42,6 @@ function getGeminiErrorMessage(data: unknown) {
   }
 
   return "Unknown Gemini API error";
-}
-
-function isChatModel(model: string) {
-  const name = model.toLowerCase();
-
-  const blockedTerms = [
-    "tts",
-    "audio",
-    "image",
-    "vision",
-    "embedding",
-    "live",
-    "aqa",
-    "robotics",
-  ];
-
-  return !blockedTerms.some((term) => name.includes(term));
 }
 
 async function getAvailableModels(apiKey: string) {
@@ -79,22 +66,16 @@ async function getAvailableModels(apiKey: string) {
   const models = Array.isArray(data?.models)
     ? (data.models as GeminiModel[])
         .filter((model) => {
-          if (!model.name) return false;
-
-          const supportsGenerateContent =
+          return (
+            model.name &&
             model.supportedGenerationMethods?.includes(
               "generateContent"
-            );
-
-          const cleanName = model.name.replace(/^models\//, "");
-
-          return (
-            supportsGenerateContent &&
-            cleanName.toLowerCase().includes("gemini") &&
-            isChatModel(cleanName)
+            )
           );
         })
-        .map((model) => model.name!.replace(/^models\//, ""))
+        .map((model) =>
+          model.name!.replace(/^models\//, "")
+        )
     : [];
 
   return {
@@ -117,9 +98,11 @@ async function generateWithGemini(
     )}:generateContent?key=${apiKey}`,
     {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json",
       },
+
       body: JSON.stringify({
         system_instruction: {
           parts: [
@@ -128,16 +111,20 @@ async function generateWithGemini(
             },
           ],
         },
+
         contents,
+
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 1200,
         },
       }),
     }
   );
 
-  const data = await response.json().catch(() => ({}));
+  const data = await response
+    .json()
+    .catch(() => ({}));
 
   return {
     response,
@@ -153,7 +140,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "AI service is not configured. Add GEMINI_API_KEY to Vercel and redeploy.",
+            "AI service is not configured. Add GEMINI_API_KEY to your Vercel environment variables and redeploy.",
         },
         {
           status: 500,
@@ -163,14 +150,20 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const mentorId = normalizeMentorId(body?.mentorId);
+    const mentorId = normalizeMentorId(
+      body?.mentorId
+    );
 
-    const messages = Array.isArray(body?.messages)
+    const messages = Array.isArray(
+      body?.messages
+    )
       ? body.messages
       : [];
 
     const mentor = virtualMentors.find(
-      (item) => normalizeMentorId(item.id) === mentorId
+      (item) =>
+        normalizeMentorId(item.id) ===
+        mentorId
     );
 
     if (!mentor) {
@@ -184,27 +177,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const conversation: ChatMessage[] = messages
-      .filter((item: unknown): item is ChatMessage => {
-        if (!item || typeof item !== "object") {
-          return false;
-        }
+    const conversation: ChatMessage[] =
+      messages
+        .filter(
+          (
+            item: unknown
+          ): item is ChatMessage => {
+            if (
+              !item ||
+              typeof item !== "object"
+            ) {
+              return false;
+            }
 
-        const message = item as ChatMessage;
+            const message =
+              item as ChatMessage;
 
-        return (
-          (message.role === "user" ||
-            message.role === "assistant") &&
-          typeof message.content === "string" &&
-          message.content.trim().length > 0
-        );
-      })
-      .slice(-20);
+            return (
+              (message.role === "user" ||
+                message.role === "assistant") &&
+              typeof message.content ===
+                "string" &&
+              message.content.trim().length > 0
+            );
+          }
+        )
+        .slice(-20);
 
     if (conversation.length === 0) {
       return NextResponse.json(
         {
-          error: "Please send a message to the mentor.",
+          error:
+            "Please send a message to the mentor.",
         },
         {
           status: 400,
@@ -212,70 +216,114 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemInstruction = `
-You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
+    const systemInstruction = `You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
 
 Your professional specialization is:
-${mentor.profession}
+${mentor.profession}.
 
 Your areas of expertise are:
-${mentor.expertise.join(", ")}
+${mentor.expertise.join(", ")}.
 
-Your profile:
+Your mentor profile:
 ${mentor.bio}
 
-Stay in character as this mentor.
+PERSONALITY AND ROLE:
 
-Give practical, specific, encouraging career guidance.
+You are a helpful, practical, encouraging, and knowledgeable AI-powered career mentor.
 
-Break complicated topics into clear and actionable steps.
-
-When appropriate, provide:
-- A step-by-step roadmap
-- Skills to learn
-- Practice recommendations
-- Project ideas
-- Career advice
-- Interview preparation
-- Common mistakes to avoid
-
-Ask a useful follow-up question when important information is missing.
+Stay in character as ${mentor.name} and focus primarily on your area of specialization.
 
 Do not pretend to be a real human.
 
-Do not claim real-world employment, qualifications, or experiences beyond this fictional mentor profile.
+Do not claim real-world employment, qualifications, certifications, or personal experiences beyond this fictional mentor profile.
 
-If asked directly whether you are AI, answer honestly that you are an AI-powered virtual mentor.
+If the user directly asks whether you are AI, answer honestly that you are an AI-powered virtual mentor.
 
-For medical, legal, financial, mental-health, or other high-stakes topics, provide only general educational information and encourage the user to consult a qualified professional.
+RESPONSE STYLE:
 
-Keep answers concise unless the user asks for a detailed plan.
+Give practical and specific advice.
 
-Format your response cleanly for a chat interface.
+Do not give generic motivational speeches.
 
-Rules:
-- Keep paragraphs short.
-- Put each numbered step on a new line.
-- Never put headings such as "### Step 1" in the middle of a paragraph.
-- If using headings, always put them on their own line.
-- Use simple numbered lists for plans.
-- Use bold formatting sparingly.
-- Do not produce one giant block of text.
-`;
+Adapt every answer to the user's actual question.
 
-    const contents = conversation.map((message) => ({
-      role:
-        message.role === "assistant"
-          ? "model"
-          : "user",
-      parts: [
-        {
-          text: message.content,
-        },
-      ],
-    }));
+Keep simple answers concise.
 
-    const available = await getAvailableModels(apiKey);
+If the user asks for a roadmap, career plan, learning path, exam preparation strategy, or detailed guidance, provide a structured answer.
+
+Never create one huge wall of text.
+
+Use short paragraphs.
+
+Use Markdown formatting correctly.
+
+Use headings only when helpful.
+
+Put headings on their own line.
+
+Put each numbered step on its own line.
+
+Use numbered lists for step-by-step plans.
+
+Use bullet points when listing options, skills, resources, or important information.
+
+Use **bold text** only for important concepts.
+
+Do not overuse headings or bold text.
+
+Example response format:
+
+## Your Roadmap
+
+1. Learn the fundamentals.
+
+2. Practice consistently.
+
+3. Build practical projects.
+
+4. Review your progress.
+
+PERSONALIZATION:
+
+Before giving a highly detailed roadmap, consider whether you need information such as:
+
+- Current education level
+- Experience level
+- Career goal
+- Available time
+- Country or region when qualifications, exams, or regulations depend on location
+
+However, do not repeatedly ask unnecessary questions.
+
+If enough information is already available, give useful advice immediately.
+
+When important information is missing, give the user a useful general answer first, then ask one or two relevant follow-up questions.
+
+HIGH-STAKES TOPICS:
+
+For medical, legal, financial, mental-health, or other high-stakes topics, provide general educational information only.
+
+Encourage the user to consult an appropriately qualified professional when necessary.
+
+Your goal is to make the user feel like they are speaking with a knowledgeable mentor who gives clear, useful, actionable, and personalized guidance.`;
+
+    const contents = conversation.map(
+      (message) => ({
+        role:
+          message.role === "assistant"
+            ? "model"
+            : "user",
+
+        parts: [
+          {
+            text: message.content,
+          },
+        ],
+      })
+    );
+
+    const available =
+      await getAvailableModels(apiKey);
 
     if (!available.ok) {
       return NextResponse.json(
@@ -296,13 +344,20 @@ Rules:
       return NextResponse.json(
         {
           error:
-            "No compatible Gemini chat models are available for this API key. Check your Google AI Studio API key and project.",
+            "This Gemini API key has no models with generateContent access. Check your Google AI Studio API key and project permissions.",
         },
         {
           status: 502,
         }
       );
     }
+
+    /*
+     * Preferred Gemini models.
+     *
+     * The API first checks which models are actually
+     * available for your specific API key.
+     */
 
     const preferredNames = [
       "gemini-2.5-flash",
@@ -312,32 +367,19 @@ Rules:
       "gemini-1.5-pro",
     ];
 
-    const preferredModels = preferredNames.filter((name) =>
-      available.models.includes(name)
-    );
-
-    const fallbackModels = available.models.filter(
-      (model) =>
-        !preferredModels.includes(model) &&
-        isChatModel(model)
-    );
+    const preferred =
+      preferredNames.filter((name) =>
+        available.models.includes(name)
+      );
 
     const modelsToTry = [
-      ...preferredModels,
-      ...fallbackModels,
-    ].slice(0, 5);
+      ...preferred,
 
-    if (modelsToTry.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "No compatible Gemini text chat model is available for this API key.",
-        },
-        {
-          status: 502,
-        }
-      );
-    }
+      ...available.models.filter(
+        (model) =>
+          !preferred.includes(model)
+      ),
+    ].slice(0, 8);
 
     let lastStatus = 502;
 
@@ -345,26 +387,29 @@ Rules:
       "The AI service could not generate a response.";
 
     for (const model of modelsToTry) {
-      console.log(
-        `Trying Gemini model: ${model}`
+      const {
+        response,
+        data,
+      } = await generateWithGemini(
+        model,
+        apiKey,
+        systemInstruction,
+        contents
       );
 
-      const { response, data } =
-        await generateWithGemini(
-          model,
-          apiKey,
-          systemInstruction,
-          contents
-        );
-
       if (response.ok) {
-        const reply = data?.candidates?.[0]?.content?.parts
-          ?.map(
-            (part: { text?: string }) =>
-              part.text ?? ""
-          )
-          .join("")
-          .trim();
+        const reply =
+          data?.candidates?.[0]?.content?.parts
+            ?.map(
+              (
+                part: {
+                  text?: string;
+                }
+              ) =>
+                part.text ?? ""
+            )
+            .join("")
+            .trim();
 
         if (reply) {
           return NextResponse.json({
@@ -375,7 +420,7 @@ Rules:
         lastStatus = 502;
 
         lastMessage =
-          "The AI service returned an empty response.";
+          "The AI service returned an empty response. Please try again.";
 
         continue;
       }
@@ -394,7 +439,13 @@ Rules:
         }
       );
 
+      /*
+       * Stop immediately for errors that trying another
+       * model will probably not fix.
+       */
+
       if (
+        response.status === 400 ||
         response.status === 401 ||
         response.status === 403 ||
         response.status === 429
