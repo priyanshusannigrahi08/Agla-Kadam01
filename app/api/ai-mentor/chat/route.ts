@@ -8,6 +8,13 @@ type ChatMessage = {
   content: string;
 };
 
+function normalizeMentorId(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -18,11 +25,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const mentorId = String(body.mentorId || "");
-    const messages = Array.isArray(body.messages) ? body.messages : [];
+    const mentorId = normalizeMentorId(body?.mentorId);
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
 
-    const mentor = virtualMentors.find((item) => item.id === mentorId);
+    const mentor = virtualMentors.find(
+      (item) => normalizeMentorId(item.id) === mentorId
+    );
+
     if (!mentor) {
+      console.error("AI mentor not found", {
+        receivedMentorId: mentorId,
+        availableMentorIds: virtualMentors.map((item) => item.id),
+      });
+
       return NextResponse.json(
         { error: "Mentor not found." },
         { status: 404 }
@@ -35,10 +50,18 @@ export async function POST(request: NextRequest) {
         const message = item as ChatMessage;
         return (
           (message.role === "user" || message.role === "assistant") &&
-          typeof message.content === "string"
+          typeof message.content === "string" &&
+          message.content.trim().length > 0
         );
       })
       .slice(-20);
+
+    if (conversation.length === 0) {
+      return NextResponse.json(
+        { error: "Please send a message to the mentor." },
+        { status: 400 }
+      );
+    }
 
     const systemInstruction = `You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
 Your professional specialization is: ${mentor.profession}.
@@ -48,8 +71,6 @@ Stay in character as this mentor. Give practical, specific, encouraging guidance
 For medical, legal, financial, mental-health, or other high-stakes topics, provide general educational guidance and encourage the user to consult an appropriately qualified professional when necessary. Do not diagnose or present your guidance as professional advice.
 Keep answers concise unless the user asks for a detailed plan.`;
 
-    // Gemini uses "model" instead of "assistant" for the AI's turns, and
-    // wraps text in a "parts" array rather than a plain "content" string.
     const contents = conversation.map((message) => ({
       role: message.role === "assistant" ? "model" : "user",
       parts: [{ text: message.content }],
@@ -78,7 +99,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
       );
     }
 
-    const reply: string =
+    const reply =
       data?.candidates?.[0]?.content?.parts
         ?.map((part: { text?: string }) => part.text ?? "")
         .join("")
