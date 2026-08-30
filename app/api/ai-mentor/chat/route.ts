@@ -21,11 +21,7 @@ function normalizeMentorId(value: unknown) {
 }
 
 function getApiKey() {
-  return (
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  );
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
 }
 
 function getGeminiErrorMessage(data: unknown) {
@@ -44,9 +40,24 @@ function getGeminiErrorMessage(data: unknown) {
   return "Unknown Gemini API error";
 }
 
+/*
+ * Models that are appropriate for normal text chat.
+ *
+ * IMPORTANT:
+ * Do NOT put TTS, audio, image-generation, or Live models here.
+ */
+const CHAT_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+];
+
 async function getAvailableModels(apiKey: string) {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+      apiKey
+    )}`,
     {
       cache: "no-store",
     }
@@ -66,16 +77,42 @@ async function getAvailableModels(apiKey: string) {
   const models = Array.isArray(data?.models)
     ? (data.models as GeminiModel[])
         .filter((model) => {
-          return (
-            model.name &&
+          if (!model.name) {
+            return false;
+          }
+
+          const name = model.name.replace(/^models\//, "");
+
+          /*
+           * Only normal text-chat models.
+           *
+           * This deliberately excludes things like:
+           * - TTS
+           * - audio
+           * - live
+           * - image
+           */
+          const isAudioModel =
+            name.includes("tts") ||
+            name.includes("audio") ||
+            name.includes("live");
+
+          const isImageModel =
+            name.includes("image") ||
+            name.includes("imagen");
+
+          const supportsGenerateContent =
             model.supportedGenerationMethods?.includes(
               "generateContent"
-            )
+            ) ?? false;
+
+          return (
+            supportsGenerateContent &&
+            !isAudioModel &&
+            !isImageModel
           );
         })
-        .map((model) =>
-          model.name!.replace(/^models\//, "")
-        )
+        .map((model) => model.name!.replace(/^models\//, ""))
     : [];
 
   return {
@@ -95,14 +132,12 @@ async function generateWithGemini(
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       model
-    )}:generateContent?key=${apiKey}`,
+    )}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         system_instruction: {
           parts: [
@@ -116,15 +151,13 @@ async function generateWithGemini(
 
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1200,
+          maxOutputTokens: 2048,
         },
       }),
     }
   );
 
-  const data = await response
-    .json()
-    .catch(() => ({}));
+  const data = await response.json().catch(() => ({}));
 
   return {
     response,
@@ -134,13 +167,19 @@ async function generateWithGemini(
 
 export async function POST(request: NextRequest) {
   try {
+    /*
+     * ---------------------------------------------------------
+     * 1. API KEY
+     * ---------------------------------------------------------
+     */
+
     const apiKey = getApiKey();
 
     if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            "AI service is not configured. Add GEMINI_API_KEY to your Vercel environment variables and redeploy.",
+            "AI service is not configured. Add GEMINI_API_KEY to Vercel Environment Variables and redeploy.",
         },
         {
           status: 500,
@@ -148,22 +187,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /*
+     * ---------------------------------------------------------
+     * 2. REQUEST BODY
+     * ---------------------------------------------------------
+     */
+
     const body = await request.json();
 
-    const mentorId = normalizeMentorId(
-      body?.mentorId
-    );
+    const mentorId = normalizeMentorId(body?.mentorId);
 
-    const messages = Array.isArray(
-      body?.messages
-    )
+    const messages = Array.isArray(body?.messages)
       ? body.messages
       : [];
 
+    /*
+     * ---------------------------------------------------------
+     * 3. FIND MENTOR
+     * ---------------------------------------------------------
+     */
+
     const mentor = virtualMentors.find(
       (item) =>
-        normalizeMentorId(item.id) ===
-        mentorId
+        normalizeMentorId(item.id) === mentorId
     );
 
     if (!mentor) {
@@ -177,32 +223,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const conversation: ChatMessage[] =
-      messages
-        .filter(
-          (
-            item: unknown
-          ): item is ChatMessage => {
-            if (
-              !item ||
-              typeof item !== "object"
-            ) {
-              return false;
-            }
+    /*
+     * ---------------------------------------------------------
+     * 4. VALIDATE CONVERSATION
+     * ---------------------------------------------------------
+     */
 
-            const message =
-              item as ChatMessage;
+    const conversation: ChatMessage[] = messages
+      .filter((item: unknown): item is ChatMessage => {
+        if (!item || typeof item !== "object") {
+          return false;
+        }
 
-            return (
-              (message.role === "user" ||
-                message.role === "assistant") &&
-              typeof message.content ===
-                "string" &&
-              message.content.trim().length > 0
-            );
-          }
-        )
-        .slice(-20);
+        const message = item as ChatMessage;
+
+        return (
+          (message.role === "user" ||
+            message.role === "assistant") &&
+          typeof message.content === "string" &&
+          message.content.trim().length > 0
+        );
+      })
+      .slice(-20);
 
     if (conversation.length === 0) {
       return NextResponse.json(
@@ -216,116 +258,105 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemInstruction = `You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
+    /*
+     * ---------------------------------------------------------
+     * 5. MENTOR SYSTEM INSTRUCTION
+     * ---------------------------------------------------------
+     */
 
-Your professional specialization is:
-${mentor.profession}.
+    const systemInstruction = `
+You are ${mentor.name}, a virtual mentor on the Agla Kadam mentorship platform.
 
-Your areas of expertise are:
-${mentor.expertise.join(", ")}.
+Your professional specialization:
+${mentor.profession}
 
-Your mentor profile:
+Your areas of expertise:
+${mentor.expertise.join(", ")}
+
+Your profile:
 ${mentor.bio}
 
-PERSONALITY AND ROLE:
+Your job is to act as a helpful AI-powered career mentor.
 
-You are a helpful, practical, encouraging, and knowledgeable AI-powered career mentor.
+IMPORTANT BEHAVIOR:
 
-Stay in character as ${mentor.name} and focus primarily on your area of specialization.
+1. Stay in character as this mentor.
+2. Give practical and actionable career guidance.
+3. Explain difficult concepts in simple language.
+4. Break large goals into smaller steps.
+5. Give examples whenever useful.
+6. Avoid generic motivational filler.
+7. If the user asks about a career path, give a realistic roadmap.
+8. If the user is a beginner, do not assume prior knowledge.
+9. If the user asks a technical question, explain the concept clearly and then give an example where appropriate.
+10. Ask a useful follow-up question only when additional information is genuinely necessary.
+11. Do not repeatedly ask unnecessary questions.
+12. Keep normal answers concise but useful.
+13. If the user requests a detailed roadmap, provide a detailed roadmap.
+14. Never claim that you are a real human.
+15. Never invent employment history, qualifications, companies, clients, or real-world experiences for the mentor.
 
-Do not pretend to be a real human.
-
-Do not claim real-world employment, qualifications, certifications, or personal experiences beyond this fictional mentor profile.
+AI DISCLOSURE:
 
 If the user directly asks whether you are AI, answer honestly that you are an AI-powered virtual mentor.
 
-RESPONSE STYLE:
-
-Give practical and specific advice.
-
-Do not give generic motivational speeches.
-
-Adapt every answer to the user's actual question.
-
-Keep simple answers concise.
-
-If the user asks for a roadmap, career plan, learning path, exam preparation strategy, or detailed guidance, provide a structured answer.
-
-Never create one huge wall of text.
-
-Use short paragraphs.
-
-Use Markdown formatting correctly.
-
-Use headings only when helpful.
-
-Put headings on their own line.
-
-Put each numbered step on its own line.
-
-Use numbered lists for step-by-step plans.
-
-Use bullet points when listing options, skills, resources, or important information.
-
-Use **bold text** only for important concepts.
-
-Do not overuse headings or bold text.
-
-Example response format:
-
-## Your Roadmap
-
-1. Learn the fundamentals.
-
-2. Practice consistently.
-
-3. Build practical projects.
-
-4. Review your progress.
-
-PERSONALIZATION:
-
-Before giving a highly detailed roadmap, consider whether you need information such as:
-
-- Current education level
-- Experience level
-- Career goal
-- Available time
-- Country or region when qualifications, exams, or regulations depend on location
-
-However, do not repeatedly ask unnecessary questions.
-
-If enough information is already available, give useful advice immediately.
-
-When important information is missing, give the user a useful general answer first, then ask one or two relevant follow-up questions.
-
 HIGH-STAKES TOPICS:
 
-For medical, legal, financial, mental-health, or other high-stakes topics, provide general educational information only.
+For medical, legal, financial, mental-health, or other high-stakes matters, provide only general educational information and encourage the user to consult an appropriately qualified professional.
 
-Encourage the user to consult an appropriately qualified professional when necessary.
+STYLE:
 
-Your goal is to make the user feel like they are speaking with a knowledgeable mentor who gives clear, useful, actionable, and personalized guidance.`;
+Be friendly, professional, encouraging, and direct.
 
-    const contents = conversation.map(
-      (message) => ({
-        role:
-          message.role === "assistant"
-            ? "model"
-            : "user",
+Do not start every answer with phrases such as:
+"That's a great question!"
+"Absolutely!"
+"Certainly!"
 
-        parts: [
-          {
-            text: message.content,
-          },
-        ],
-      })
-    );
+Get directly to the useful answer.
 
-    const available =
-      await getAvailableModels(apiKey);
+Use headings and numbered lists when they make the answer easier to understand.
+`;
+
+    /*
+     * ---------------------------------------------------------
+     * 6. CONVERT CHAT HISTORY TO GEMINI FORMAT
+     * ---------------------------------------------------------
+     *
+     * Gemini REST generateContent supports multi-turn
+     * conversations through the contents array.
+     *
+     * user      -> user
+     * assistant -> model
+     */
+
+    const contents = conversation.map((message) => ({
+      role:
+        message.role === "assistant"
+          ? "model"
+          : "user",
+
+      parts: [
+        {
+          text: message.content,
+        },
+      ],
+    }));
+
+    /*
+     * ---------------------------------------------------------
+     * 7. GET AVAILABLE GEMINI MODELS
+     * ---------------------------------------------------------
+     */
+
+    const available = await getAvailableModels(apiKey);
 
     if (!available.ok) {
+      console.error(
+        "Could not list Gemini models:",
+        available.message
+      );
+
       return NextResponse.json(
         {
           error: `Gemini could not list models for this API key: ${available.message}`,
@@ -340,11 +371,64 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
       );
     }
 
-    if (available.models.length === 0) {
+    /*
+     * ---------------------------------------------------------
+     * 8. SELECT ONLY SAFE CHAT MODELS
+     * ---------------------------------------------------------
+     *
+     * We NEVER blindly try every model returned by Google.
+     *
+     * This is the important fix for your current error.
+     *
+     * Previously your code could eventually reach:
+     *
+     * gemini-2.5-flash-preview-tts
+     *
+     * That model is for speech generation, not this
+     * multi-turn text mentor chat.
+     */
+
+    const availableChatModels = CHAT_MODELS.filter(
+      (model) =>
+        available.models.includes(model)
+    );
+
+    /*
+     * If the preferred models aren't returned by the API,
+     * use other available non-audio/non-image models.
+     */
+
+    const fallbackModels = available.models.filter(
+      (model) => {
+        const lower = model.toLowerCase();
+
+        return (
+          !lower.includes("tts") &&
+          !lower.includes("audio") &&
+          !lower.includes("live") &&
+          !lower.includes("image") &&
+          !lower.includes("imagen") &&
+          !availableChatModels.includes(model)
+        );
+      }
+    );
+
+    const modelsToTry = [
+      ...availableChatModels,
+      ...fallbackModels,
+    ].slice(0, 6);
+
+    /*
+     * ---------------------------------------------------------
+     * 9. SAFETY CHECK
+     * ---------------------------------------------------------
+     */
+
+    if (modelsToTry.length === 0) {
       return NextResponse.json(
         {
           error:
-            "This Gemini API key has no models with generateContent access. Check your Google AI Studio API key and project permissions.",
+            "No compatible Gemini text-chat model is available for this API key. Make sure the Google AI Studio API key belongs to a project with Gemini text models enabled.",
         },
         {
           status: 502,
@@ -352,34 +436,16 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
       );
     }
 
+    console.log(
+      "Gemini mentor models available:",
+      modelsToTry
+    );
+
     /*
-     * Preferred Gemini models.
-     *
-     * The API first checks which models are actually
-     * available for your specific API key.
+     * ---------------------------------------------------------
+     * 10. TRY MODELS
+     * ---------------------------------------------------------
      */
-
-    const preferredNames = [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-    ];
-
-    const preferred =
-      preferredNames.filter((name) =>
-        available.models.includes(name)
-      );
-
-    const modelsToTry = [
-      ...preferred,
-
-      ...available.models.filter(
-        (model) =>
-          !preferred.includes(model)
-      ),
-    ].slice(0, 8);
 
     let lastStatus = 502;
 
@@ -387,6 +453,33 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
       "The AI service could not generate a response.";
 
     for (const model of modelsToTry) {
+      /*
+       * EXTRA SAFETY:
+       *
+       * Never call TTS/audio/live/image models even if they
+       * somehow appear in the model list.
+       */
+
+      const lowerModel = model.toLowerCase();
+
+      if (
+        lowerModel.includes("tts") ||
+        lowerModel.includes("audio") ||
+        lowerModel.includes("live") ||
+        lowerModel.includes("image") ||
+        lowerModel.includes("imagen")
+      ) {
+        console.log(
+          `Skipping incompatible Gemini model: ${model}`
+        );
+
+        continue;
+      }
+
+      console.log(
+        `Trying Gemini mentor model: ${model}`
+      );
+
       const {
         response,
         data,
@@ -397,15 +490,17 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
         contents
       );
 
+      /*
+       * -------------------------------------------------------
+       * SUCCESS
+       * -------------------------------------------------------
+       */
+
       if (response.ok) {
         const reply =
           data?.candidates?.[0]?.content?.parts
             ?.map(
-              (
-                part: {
-                  text?: string;
-                }
-              ) =>
+              (part: { text?: string }) =>
                 part.text ?? ""
             )
             .join("")
@@ -414,16 +509,23 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
         if (reply) {
           return NextResponse.json({
             reply,
+            model,
           });
         }
 
         lastStatus = 502;
 
         lastMessage =
-          "The AI service returned an empty response. Please try again.";
+          "The AI service returned an empty response.";
 
         continue;
       }
+
+      /*
+       * -------------------------------------------------------
+       * ERROR
+       * -------------------------------------------------------
+       */
 
       lastStatus = response.status;
 
@@ -431,7 +533,7 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
         getGeminiErrorMessage(data);
 
       console.error(
-        "Gemini API error",
+        "Gemini API error:",
         {
           model,
           status: response.status,
@@ -440,23 +542,43 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
       );
 
       /*
-       * Stop immediately for errors that trying another
-       * model will probably not fix.
+       * Try another compatible model for temporary/model-specific
+       * failures.
+       */
+
+      if (
+        response.status === 429 ||
+        response.status === 500 ||
+        response.status === 502 ||
+        response.status === 503
+      ) {
+        continue;
+      }
+
+      /*
+       * Authentication / permission / malformed request errors
+       * usually won't be fixed by trying another model.
        */
 
       if (
         response.status === 400 ||
         response.status === 401 ||
-        response.status === 403 ||
-        response.status === 429
+        response.status === 403
       ) {
         break;
       }
     }
 
+    /*
+     * ---------------------------------------------------------
+     * 11. FINAL ERROR
+     * ---------------------------------------------------------
+     */
+
     return NextResponse.json(
       {
-        error: `The mentor could not respond: ${lastMessage}`,
+        error:
+          `The mentor could not respond: ${lastMessage}`,
       },
       {
         status:
@@ -467,6 +589,12 @@ Your goal is to make the user feel like they are speaking with a knowledgeable m
       }
     );
   } catch (error) {
+    /*
+     * ---------------------------------------------------------
+     * 12. UNEXPECTED ERROR
+     * ---------------------------------------------------------
+     */
+
     console.error(
       "AI mentor route error:",
       error
