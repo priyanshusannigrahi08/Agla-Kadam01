@@ -3,7 +3,7 @@ import { virtualMentors } from "@/app/data/virtualMentors";
 
 export const runtime = "nodejs";
 
- type Message = {
+type Message = {
   role: "user" | "assistant";
   content: string;
 };
@@ -108,8 +108,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute and try again." }, { status: 429 });
     }
 
-    const contentLength = Number(request.headers.get("content-length") || 0);
-    if (contentLength > MAX_BODY_BYTES) {
+    const contentLengthHeader = request.headers.get("content-length");
+    const contentLength = contentLengthHeader ? Number(contentLengthHeader) : 0;
+    if (contentLengthHeader && (!Number.isFinite(contentLength) || contentLength < 0 || contentLength > MAX_BODY_BYTES)) {
       return NextResponse.json({ error: "Request is too large." }, { status: 413 });
     }
 
@@ -119,9 +120,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "The AI mentor is temporarily unavailable." }, { status: 503 });
     }
 
+    let rawBody: string;
+    try {
+      rawBody = await request.text();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    }
+
+    // Content-Length is optional with streamed requests, so enforce the same
+    // limit against the actual UTF-8 payload before JSON parsing.
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
     let body: RequestBody;
     try {
-      body = (await request.json()) as RequestBody;
+      body = JSON.parse(rawBody) as RequestBody;
     } catch {
       return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
     }
