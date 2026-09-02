@@ -40,7 +40,7 @@ function scoreMentor(mentor: Mentor, answers: string[]) {
   if (situation.includes("higher studies") && /(education|academic|university|research|mba|master)/.test(text)) score += 2;
   if (preference.includes("target field")) score += 1;
   if (preference.includes("changed careers") && /(switch|transition|career change|changed)/.test(text)) score += 4;
-  if (preference.includes("5+ years") && /(5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)\s*\+?\s*year/.test(text)) score += 4;
+  if (preference.includes("5+ years") && /\b(?:5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)\s*\+?\s*years?\b/.test(text)) score += 4;
   return score;
 }
 
@@ -63,7 +63,8 @@ export default function FindMentorPage() {
       return;
     }
     setLoading(true);
-    const { data } = await supabase.from("mentors").select("id,name,headline,bio,expertise,experience,company,role,location,calendly,photo_url");
+    const { data, error } = await supabase.from("mentors_public").select("id,name,headline,bio,expertise,experience,company,role,location,calendly,photo_url");
+    if (error) console.error("MENTOR MATCH LOAD ERROR:", error);
     setMentors((data || []) as Mentor[]);
     setLoading(false);
     setStep(steps.length);
