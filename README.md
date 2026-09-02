@@ -2,104 +2,139 @@
 
 *Agla kadam* — Hindi for "next step."
 
-A no-frills matchmaking site for people between chapters — college dropouts,
-final-year students, and career switchers — to get matched with a mentor and
-book a single guidance call.
+A mentorship marketplace for people between chapters — students, graduates,
+and career switchers — to find a mentor, explore their experience, and book a
+30-minute guidance call.
 
-**Live demo:** _add your Vercel URL here once deployed_
+**Live demo:** https://agla-kadam.vercel.app/
 
-## Why this exists
+## What the current app does
 
-Most career guidance is either a paid course or a cold LinkedIn message that
-never gets a reply. AglaKadam does one thing: collect what someone's stuck
-on, hand-match them with a mentor whose path is close to theirs, and get them
-on a 30-minute call. No algorithm, no chat product, no payments — on purpose,
-at this stage.
+- Guided mentor matching at `/find-mentor`
+- Search, filtering and sorting at `/mentors`
+- Public mentor profiles at `/mentors/[id]`
+- External calendar booking with a dashboard record at `/book/[id]`
+- Published mentor reviews at `/review`
+- Email/authentication flows through Supabase
+- Optional AI mentor guidance
+- Mentor and mentee profile forms with profile photos
 
-## How it works
-
-1. A mentee fills out a short form describing their situation and what
-   they're stuck on.
-2. A mentor fills out a separate form with their background and a booking
-   link (Calendly or similar).
-3. Both are stored in Supabase. Right now, matching is done by hand — a
-   human reads both tables and decides who to introduce.
-4. The mentee gets an email with the mentor's name and booking link, and
-   books a call directly.
-
-This is deliberately manual at small scale — see [Roadmap](#roadmap) for what
-gets automated as usage grows.
+The mentor directory only exposes mentors whose Supabase `status` is
+`approved`. Reviews are submitted as `pending` and should be published only
+after they are reviewed/approved.
 
 ## Tech stack
 
-- [Next.js 16](https://nextjs.org/) (App Router) — deployed on [Vercel](https://vercel.com/)
-- [Supabase](https://supabase.com/) — Postgres database + row-level security, free tier
-- [Tailwind CSS](https://tailwindcss.com/) — styling
-- TypeScript throughout
+- Next.js 16 (App Router) — deployed on Vercel
+- Supabase — Postgres, Auth, Storage and row-level security
+- Tailwind CSS
+- TypeScript
 
 ## Running locally
 
 ```bash
-git clone https://github.com/your-username/aglakadam.git
-cd aglakadam
+git clone https://github.com/priyanshusannigrahi08/Agla-Kadam01.git
+cd Agla-Kadam01
 npm install
 cp .env.example .env.local
-# fill in .env.local with your own Supabase project's URL and anon key
+# Fill in the Supabase and Gemini values in .env.local.
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open http://localhost:3000.
 
-### Setting up Supabase
+## Environment variables
 
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Go to **Project Settings → API** and copy the **Project URL** and
-   **anon public key** into `.env.local`
-3. Go to the **SQL Editor** and run the contents of
-   [`supabase/schema.sql`](./supabase/schema.sql) — this creates the
-   `mentees` and `mentors` tables with row-level security already
-   configured (the public key can insert signups but can't read other
-   people's data back out)
-4. Then run [`supabase/mentors_public_view.sql`](./supabase/mentors_public_view.sql) —
-   this creates a read-only view of *approved* mentors (with email
-   addresses excluded) that powers the public `/mentors` directory page.
-   To make a mentor show up there, open the `mentors` table in Supabase's
-   Table Editor and change their `status` from `pending` to `approved`.
+```text
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GEMINI_API_KEY=your_gemini_api_key
+```
 
-### Deploying
+`GEMINI_API_KEY` is server-side only. Never expose it as a
+`NEXT_PUBLIC_` variable or commit a real secret to the repository.
 
-Connect this repo to Vercel, add the same two environment variables in
-**Project Settings → Environment Variables**, and every push to `main`
-deploys automatically.
+## Supabase setup
+
+Run the SQL scripts in this order in the Supabase SQL Editor:
+
+1. [`supabase/schema.sql`](./supabase/schema.sql) — creates the base
+   `mentors` and `mentees` tables and baseline policies.
+2. [`supabase/platform_upgrade.sql`](./supabase/platform_upgrade.sql) — adds
+   the current mentor/mentee fields, reviews, bookings, the canonical
+   `mentors_public` view, authenticated ownership policies, review eligibility
+   checks, and the `profile-photos` storage bucket/upload policy.
+
+**Important:** `platform_upgrade.sql` is now the canonical upgrade script.
+[`supabase/mentors_public_view.sql`](./supabase/mentors_public_view.sql) is kept
+only as a legacy reference; do not use it instead of the platform upgrade
+script for a fresh current setup.
+
+To publish a mentor, change their `mentors.status` from `pending` to
+`approved` in the Supabase Table Editor.
+
+### Booking and review trust model
+
+AglaKadam currently uses an external booking service such as Calendly. The app
+records a booking only after the signed-in mentee clicks the confirmation
+button; it does **not** verify the external calendar event. The database calls
+this a `requested` booking rather than claiming it is externally confirmed.
+
+A review can only be inserted by the signed-in user who owns the review, must
+be `pending` on insertion, and must have a recorded booking for that mentor.
+This protects review integrity at the database layer as well as in the UI.
+
+For production-grade calendar verification, add a provider webhook/API
+integration before treating bookings as completed or confirmed.
+
+## Deployment
+
+Connect this repo to Vercel and add the same environment variables in
+**Project Settings → Environment Variables**. Pushes to `main` can then deploy
+automatically.
 
 ## Project structure
 
-```
+```text
 app/
-  page.tsx           # Landing page
-  mentee/page.tsx    # Mentee signup form
-  mentor/page.tsx    # Mentor signup form
-  thank-you/page.tsx # Post-submit confirmation
+  page.tsx
+  find-mentor/page.tsx
+  mentors/page.tsx
+  mentors/[id]/page.tsx
+  book/[id]/page.tsx
+  review/page.tsx
+  dashboard/page.tsx
+  ai-mentor/[id]/page.tsx
+  mentor/page.tsx
+  mentee/page.tsx
+  auth/page.tsx
+components/
+  FeaturedMentors.tsx
 lib/
-  supabaseClient.ts  # Supabase client setup
+  supabaseClient.ts
+  profilePhoto.ts
 supabase/
-  schema.sql         # Database schema + RLS policies
+  schema.sql
+  platform_upgrade.sql
+  mentors_public_view.sql  # legacy reference
 ```
 
 ## Roadmap
 
-- [x] Manual signup + hand-matching (current stage)
-- [x] Browsable mentor directory with search (`/mentors`)
-- [ ] Admin view for reviewing and matching signups without opening
-      Supabase directly
-- [ ] Rule-based auto-matching on tags/interests
-- [ ] In-app scheduling instead of external Calendly links
-- [ ] Progressive Web App (installable, no app store needed)
-- [ ] Native app — only once retention data justifies the investment
+- [x] Browsable mentor marketplace
+- [x] Guided mentor matching
+- [x] Public mentor profiles
+- [x] External booking flow + dashboard records
+- [x] Reviews with database-level eligibility checks
+- [x] Profile photo storage
+- [ ] Verified calendar/webhook integration
+- [ ] Admin dashboard for mentor/review approval
+- [ ] Rate limiting and usage quotas for the AI mentor endpoint
+- [ ] In-app scheduling
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## License
 
