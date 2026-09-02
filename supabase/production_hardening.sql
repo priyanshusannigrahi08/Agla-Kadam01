@@ -2,18 +2,22 @@
 -- Run AFTER supabase/platform_upgrade.sql.
 -- This migration tightens the existing schema without deleting legacy rows.
 
--- Auth-owned profiles should follow the auth user lifecycle.
+-- Auth-owned profiles should follow the auth user lifecycle. NOT VALID keeps
+-- deployment safe if an old database contains an orphaned legacy user_id;
+-- future inserts/updates are still checked by the constraint.
 alter table public.mentors
   drop constraint if exists mentors_user_id_fkey;
 alter table public.mentors
   add constraint mentors_user_id_fkey
-  foreign key (user_id) references auth.users(id) on delete cascade;
+  foreign key (user_id) references auth.users(id) on delete cascade
+  not valid;
 
 alter table public.mentees
   drop constraint if exists mentees_user_id_fkey;
 alter table public.mentees
   add constraint mentees_user_id_fkey
-  foreign key (user_id) references auth.users(id) on delete cascade;
+  foreign key (user_id) references auth.users(id) on delete cascade
+  not valid;
 
 -- The current app requires authentication before creating profiles. Remove the
 -- old anonymous INSERT path so the public Data API cannot be used to spam rows.
