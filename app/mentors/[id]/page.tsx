@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Linkedin, MapPin, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, MapPin, ShieldCheck, Star } from "lucide-react";
 
 type Mentor = { id: string; name: string; headline?: string; bio?: string; expertise?: string; experience?: string; company?: string; role?: string; location?: string; linkedin?: string; linkedin_url?: string; calendly?: string; calendly_url?: string; photo_url?: string; verification_status?: string };
 type Review = { rating: number; reviewer_name: string; comment?: string | null; created_at: string };
@@ -53,7 +53,7 @@ export default function MentorProfilePage() {
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 {bookingUrl && <Link href={`/book/${mentor.id}`} className="inline-flex items-center gap-2 rounded-sm bg-amber px-6 py-3 text-sm font-semibold transition hover:brightness-95"><CalendarDays size={16}/> Book a 30-min call <ArrowRight size={15}/></Link>}
-                {linkedinUrl && <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-sm border border-ink/20 px-5 py-3 text-sm hover:bg-ink/5"><Linkedin size={16}/> LinkedIn</a>}
+                {linkedinUrl && <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-sm border border-ink/20 px-5 py-3 text-sm hover:bg-ink/5"><span className="flex h-4 w-4 items-center justify-center rounded-[3px] bg-ink text-[10px] font-bold leading-none text-white">in</span> LinkedIn</a>}
               </div>
             </div>
           </div>
