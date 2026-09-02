@@ -121,3 +121,48 @@ grant select, insert on table public.bookings to authenticated;
 -- moderation. Do not expose direct UPDATE/DELETE from the browser.
 revoke all on table public.reviews from anon;
 grant select, insert on table public.reviews to authenticated;
+
+-- External links are rendered as browser navigations. Only HTTPS URLs are
+-- accepted for mentor booking/social links and saved booking URLs. NOT VALID
+-- avoids breaking a deployment if legacy rows need cleanup, while new writes
+-- are still checked immediately.
+alter table public.mentors
+  drop constraint if exists mentors_linkedin_https_check;
+alter table public.mentors
+  add constraint mentors_linkedin_https_check
+  check (linkedin is null or linkedin = '' or linkedin ~* '^https://[^[:space:]]+$')
+  not valid;
+
+alter table public.mentors
+  drop constraint if exists mentors_calendly_https_check;
+alter table public.mentors
+  add constraint mentors_calendly_https_check
+  check (calendly is null or calendly = '' or calendly ~* '^https://[^[:space:]]+$')
+  not valid;
+
+alter table public.mentors
+  drop constraint if exists mentors_linkedin_url_https_check;
+alter table public.mentors
+  add constraint mentors_linkedin_url_https_check
+  check (linkedin_url is null or linkedin_url = '' or linkedin_url ~* '^https://[^[:space:]]+$')
+  not valid;
+
+alter table public.mentors
+  drop constraint if exists mentors_calendly_url_https_check;
+alter table public.mentors
+  add constraint mentors_calendly_url_https_check
+  check (calendly_url is null or calendly_url = '' or calendly_url ~* '^https://[^[:space:]]+$')
+  not valid;
+
+alter table public.bookings
+  drop constraint if exists bookings_url_https_check;
+alter table public.bookings
+  add constraint bookings_url_https_check
+  check (booking_url is null or booking_url = '' or booking_url ~* '^https://[^[:space:]]+$')
+  not valid;
+
+-- Default privileges should not silently expose future public tables/functions.
+alter default privileges in schema public
+  revoke all on tables from anon, authenticated;
+alter default privileges in schema public
+  revoke execute on functions from public, anon, authenticated;
