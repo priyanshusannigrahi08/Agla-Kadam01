@@ -59,16 +59,19 @@ GEMINI_API_KEY=your_gemini_api_key
 Run the SQL scripts in this order in the Supabase SQL Editor:
 
 1. [`supabase/schema.sql`](./supabase/schema.sql) — creates the base
-   `mentors` and `mentees` tables and baseline policies.
+   `mentors` and `mentees` tables and baseline RLS.
 2. [`supabase/platform_upgrade.sql`](./supabase/platform_upgrade.sql) — adds
-   the current mentor/mentee fields, reviews, bookings, the canonical
-   `mentors_public` view, authenticated ownership policies, review eligibility
-   checks, and the `profile-photos` storage bucket/upload policy.
+   the current mentor/mentee fields, reviews, bookings, the canonical public
+   mentor projection table, ownership policies, review eligibility checks, and
+   the `profile-photos` storage bucket/upload policy.
+3. [`supabase/production_hardening.sql`](./supabase/production_hardening.sql) —
+   tightens grants, auth foreign keys, storage/booking/review access, external
+   URL constraints, duplicate protection, and default privileges. Its legacy-
+   safe `NOT VALID` constraints allow old data to be cleaned up separately.
 
-**Important:** `platform_upgrade.sql` is now the canonical upgrade script.
-[`supabase/mentors_public_view.sql`](./supabase/mentors_public_view.sql) is kept
-only as a legacy reference; do not use it instead of the platform upgrade
-script for a fresh current setup.
+`mentors_public` is a dedicated projection table, not a public SQL view. A
+trigger keeps it synchronized with approved mentors while keeping private
+mentor fields out of the public Data API.
 
 To publish a mentor, change their `mentors.status` from `pending` to
 `approved` in the Supabase Table Editor.
@@ -82,7 +85,8 @@ this a `requested` booking rather than claiming it is externally confirmed.
 
 A review can only be inserted by the signed-in user who owns the review, must
 be `pending` on insertion, and must have a recorded booking for that mentor.
-This protects review integrity at the database layer as well as in the UI.
+Published reviews are publicly readable, while browser clients cannot update
+or delete reviews or booking records.
 
 For production-grade calendar verification, add a provider webhook/API
 integration before treating bookings as completed or confirmed.
@@ -105,6 +109,7 @@ app/
   review/page.tsx
   dashboard/page.tsx
   ai-mentor/[id]/page.tsx
+  api/ai-mentor/chat/route.ts
   mentor/page.tsx
   mentee/page.tsx
   auth/page.tsx
@@ -116,7 +121,7 @@ lib/
 supabase/
   schema.sql
   platform_upgrade.sql
-  mentors_public_view.sql  # legacy reference
+  production_hardening.sql
 ```
 
 ## Roadmap
@@ -127,9 +132,10 @@ supabase/
 - [x] External booking flow + dashboard records
 - [x] Reviews with database-level eligibility checks
 - [x] Profile photo storage
+- [x] AI mentor request validation and basic rate limiting
 - [ ] Verified calendar/webhook integration
 - [ ] Admin dashboard for mentor/review approval
-- [ ] Rate limiting and usage quotas for the AI mentor endpoint
+- [ ] Distributed AI rate limiting and usage quotas
 - [ ] In-app scheduling
 
 ## Contributing
