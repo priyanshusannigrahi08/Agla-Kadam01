@@ -29,7 +29,7 @@ create table if not exists reviews (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   mentor_id uuid not null references mentors(id) on delete cascade,
-  reviewer_user_id uuid not null,
+  reviewer_user_id uuid not null references auth.users(id) on delete cascade,
   reviewer_name text not null,
   rating integer not null check (rating between 1 and 5),
   comment text,
@@ -42,7 +42,7 @@ alter table reviews alter column status set default 'pending';
 create table if not exists bookings (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  mentee_user_id uuid not null,
+  mentee_user_id uuid not null references auth.users(id) on delete cascade,
   mentor_id uuid not null references mentors(id) on delete cascade,
   scheduled_for timestamptz,
   duration_minutes integer not null default 30 check (duration_minutes = 30),
@@ -52,7 +52,9 @@ create table if not exists bookings (
 );
 create index if not exists bookings_mentee_user_idx on bookings(mentee_user_id);
 create index if not exists bookings_mentor_idx on bookings(mentor_id);
+create index if not exists bookings_mentor_status_idx on bookings(mentor_id, status);
 create index if not exists reviews_mentor_idx on reviews(mentor_id);
+create index if not exists reviews_reviewer_idx on reviews(reviewer_user_id);
 
 alter table reviews enable row level security;
 alter table bookings enable row level security;
@@ -60,15 +62,10 @@ alter table mentors enable row level security;
 alter table mentees enable row level security;
 
 drop policy if exists "Public can insert mentees" on mentees;
-create policy "Public can insert mentees"
-  on mentees for insert to anon with check (true);
+drop policy if exists "Public can insert mentors" on mentors;
 drop policy if exists "Authenticated users can insert own mentee profile" on mentees;
 create policy "Authenticated users can insert own mentee profile"
   on mentees for insert to authenticated with check (user_id = auth.uid());
-
-drop policy if exists "Public can insert mentors" on mentors;
-create policy "Public can insert mentors"
-  on mentors for insert to anon with check (true);
 drop policy if exists "Authenticated users can insert own mentor profile" on mentors;
 create policy "Authenticated users can insert own mentor profile"
   on mentors for insert to authenticated with check (user_id = auth.uid());
@@ -77,13 +74,14 @@ drop policy if exists "Public can read published reviews" on reviews;
 create policy "Public can read published reviews"
   on reviews for select to anon, authenticated using (status = 'published');
 drop policy if exists "Users can create own reviews" on reviews;
+drop policy if exists "Users can create eligible pending reviews" on reviews;
 create policy "Users can create eligible pending reviews"
   on reviews for insert to authenticated
   with check (
     reviewer_user_id = auth.uid()
     and status = 'pending'
     and exists (
-      select 1 from bookings b
+      select 1 from public.bookings b
       where b.mentee_user_id = auth.uid()
         and b.mentor_id = reviews.mentor_id
         and b.status in ('requested', 'confirmed', 'completed')
@@ -96,7 +94,7 @@ create policy "Users can create own bookings"
   with check (
     mentee_user_id = auth.uid()
     and exists (
-      select 1 from mentors m
+      select 1 from public.mentors m
       where m.id = bookings.mentor_id and m.status = 'approved'
     )
   );
@@ -106,12 +104,12 @@ create policy "Users can read own bookings"
 drop policy if exists "Mentors can read their bookings" on bookings;
 create policy "Mentors can read their bookings"
   on bookings for select to authenticated
-  using (exists (select 1 from mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()));
+  using (exists (select 1 from public.mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()));
 drop policy if exists "Mentors can update their bookings" on bookings;
 create policy "Mentors can update their bookings"
   on bookings for update to authenticated
-  using (exists (select 1 from mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()))
-  with check (exists (select 1 from mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()));
+  using (exists (select 1 from public.mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()))
+  with check (exists (select 1 from public.mentors m where m.id = bookings.mentor_id and m.user_id = auth.uid()));
 
 drop policy if exists "Users can read own mentor profile" on mentors;
 create policy "Users can read own mentor profile"
@@ -121,9 +119,7 @@ create policy "Users can read own mentee profile"
   on mentees for select to authenticated using (user_id = auth.uid());
 
 -- Public mentor data is stored in a dedicated projection table instead of a
--- PostgreSQL view. This avoids exposing the protected mentors table through a
--- security-definer view while keeping the public directory limited to safe
--- fields. The projection is synchronized by a database trigger.
+-- PostgreSQL view. This keeps private mentor fields out of the public API.
 drop view if exists mentors_public;
 create table if not exists mentors_public (
   id uuid primary key references mentors(id) on delete cascade,
@@ -199,7 +195,6 @@ begin
   return new;
 end;
 $$;
-
 revoke execute on function public.sync_mentors_public() from public, anon, authenticated;
 
 drop trigger if exists sync_mentors_public on mentors;
@@ -252,6 +247,7 @@ create policy "Authenticated users can upload profile photos"
   with check (
     bucket_id = 'profile-photos'
     and (storage.foldername(name))[1] in ('mentors', 'mentees')
+    and (storage.foldername(name))[2] = (select auth.uid()::text)
   );
 drop policy if exists "Authenticated users can read profile photo metadata" on storage.objects;
 create policy "Authenticated users can read profile photo metadata"
@@ -259,29 +255,33 @@ create policy "Authenticated users can read profile photo metadata"
   using (
     bucket_id = 'profile-photos'
     and (storage.foldername(name))[1] in ('mentors', 'mentees')
+    and (storage.foldername(name))[2] = (select auth.uid()::text)
   );
 
--- Prevent duplicate authenticated profiles. Triggers are used instead of a
--- unique index so an older database containing duplicate legacy rows can still
--- be upgraded; new authenticated rows are serialized per user id.
 create or replace function public.prevent_duplicate_profile()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if new.user_id is null then
     return new;
   end if;
 
-  perform pg_advisory_xact_lock(hashtextextended(TG_TABLE_NAME || ':' || new.user_id::text, 0));
+  perform pg_advisory_xact_lock(hashtextextended(tg_table_name || ':' || new.user_id::text, 0));
 
-  if TG_TABLE_NAME = 'mentors' and exists (select 1 from public.mentors m where m.user_id = new.user_id and m.id <> coalesce(new.id, gen_random_uuid())) then
+  if tg_table_name = 'mentors' and exists (
+    select 1 from public.mentors m
+    where m.user_id = new.user_id and m.id <> new.id
+  ) then
     raise exception 'A mentor profile already exists for this account.' using errcode = '23505';
   end if;
 
-  if TG_TABLE_NAME = 'mentees' and exists (select 1 from public.mentees m where m.user_id = new.user_id and m.id <> coalesce(new.id, gen_random_uuid())) then
+  if tg_table_name = 'mentees' and exists (
+    select 1 from public.mentees m
+    where m.user_id = new.user_id and m.id <> new.id
+  ) then
     raise exception 'A mentee profile already exists for this account.' using errcode = '23505';
   end if;
 
@@ -297,16 +297,13 @@ drop trigger if exists prevent_duplicate_mentee_profile on mentees;
 create trigger prevent_duplicate_mentee_profile
 before insert or update of user_id on mentees
 for each row execute function public.prevent_duplicate_profile();
-
 revoke execute on function public.prevent_duplicate_profile() from public, anon, authenticated;
 
--- Prevent repeated active booking records for the same mentee/mentor pair.
--- Cancelled bookings may be followed by a new booking.
 create or replace function public.prevent_duplicate_active_booking()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   if new.status <> 'cancelled' then
@@ -316,7 +313,7 @@ begin
       where b.mentee_user_id = new.mentee_user_id
         and b.mentor_id = new.mentor_id
         and b.status <> 'cancelled'
-        and b.id <> coalesce(new.id, gen_random_uuid())
+        and b.id <> new.id
     ) then
       raise exception 'An active booking already exists for this mentor.' using errcode = '23505';
     end if;
@@ -329,7 +326,6 @@ drop trigger if exists prevent_duplicate_active_booking on bookings;
 create trigger prevent_duplicate_active_booking
 before insert or update of mentee_user_id, mentor_id, status on bookings
 for each row execute function public.prevent_duplicate_active_booking();
-
 revoke execute on function public.prevent_duplicate_active_booking() from public, anon, authenticated;
 
 create index if not exists mentors_user_id_idx on mentors(user_id);
