@@ -117,10 +117,13 @@ create index if not exists reviews_reviewer_idx
 revoke all on table public.bookings from anon;
 grant select, insert on table public.bookings to authenticated;
 
--- Reviews are submitted by authenticated users and publicly read only after
--- moderation. Do not expose direct UPDATE/DELETE from the browser.
+-- Published reviews are intentionally public. RLS still limits SELECT to
+-- published rows; the browser never gets UPDATE or DELETE privileges.
 revoke all on table public.reviews from anon;
+grant select on table public.reviews to anon;
 grant select, insert on table public.reviews to authenticated;
+revoke update, delete on table public.bookings from authenticated;
+revoke update, delete on table public.reviews from authenticated;
 
 -- External links are rendered as browser navigations. Only HTTPS URLs are
 -- accepted for mentor booking/social links and saved booking URLs. NOT VALID
@@ -159,6 +162,21 @@ alter table public.bookings
 alter table public.bookings
   add constraint bookings_url_https_check
   check (booking_url is null or booking_url = '' or booking_url ~* '^https://[^[:space:]]+$')
+  not valid;
+
+-- Bound user-controlled review/profile text at the database boundary too.
+alter table public.reviews
+  drop constraint if exists reviews_reviewer_name_length_check;
+alter table public.reviews
+  add constraint reviews_reviewer_name_length_check
+  check (char_length(trim(reviewer_name)) between 1 and 100)
+  not valid;
+
+alter table public.reviews
+  drop constraint if exists reviews_comment_length_check;
+alter table public.reviews
+  add constraint reviews_comment_length_check
+  check (comment is null or char_length(comment) <= 2000)
   not valid;
 
 -- Default privileges should not silently expose future public tables/functions.
