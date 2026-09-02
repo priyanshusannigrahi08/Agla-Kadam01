@@ -15,6 +15,10 @@ alter table mentors add column if not exists experience text;
 alter table mentors add column if not exists journey text;
 alter table mentors add column if not exists why_mentor text;
 alter table mentors add column if not exists verification_status text not null default 'pending';
+alter table mentors alter column linkedin_url set default '';
+alter table mentors alter column availability set default '';
+alter table mentors alter column calendly_url set default '';
+
 alter table mentees add column if not exists user_id uuid;
 alter table mentees add column if not exists photo_url text;
 alter table mentees add column if not exists stage text;
@@ -59,7 +63,6 @@ create policy "Users can read own mentor profile" on mentors for select to authe
 drop policy if exists "Users can read own mentee profile" on mentees;
 create policy "Users can read own mentee profile" on mentees for select to authenticated using (user_id = auth.uid());
 
--- The old public view has a different column layout, so drop it before recreating it.
 drop view if exists mentors_public;
 create view mentors_public as
 select id, created_at, name, headline, bio, expertise, experience, company, role,
