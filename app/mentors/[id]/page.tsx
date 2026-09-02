@@ -10,6 +10,16 @@ type Mentor = { id: string; name: string; headline?: string; bio?: string; exper
 type Review = { rating: number; reviewer_name: string; comment?: string | null; created_at: string };
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
+function safeHttpsUrl(value?: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function MentorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [mentor, setMentor] = useState<Mentor | null>(null);
@@ -24,8 +34,8 @@ export default function MentorProfilePage() {
   const average = reviews.length ? (reviews.reduce((sum, item) => sum + Number(item.rating), 0) / reviews.length).toFixed(1) : null;
   const initial = mentor.name?.trim().charAt(0).toUpperCase() || "M";
   const tags = mentor.expertise ? mentor.expertise.split(",").map((item) => item.trim()).filter(Boolean) : [];
-  const bookingUrl = mentor.calendly || mentor.calendly_url;
-  const linkedinUrl = mentor.linkedin || mentor.linkedin_url;
+  const bookingUrl = safeHttpsUrl(mentor.calendly || mentor.calendly_url);
+  const linkedinUrl = safeHttpsUrl(mentor.linkedin || mentor.linkedin_url);
 
   return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto max-w-5xl px-6 py-12 sm:py-20"><Link href="/mentors" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board"><ArrowLeft size={14}/> Back to mentors</Link>
   <section className="mt-8 rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-10"><div className="flex flex-col gap-8 sm:flex-row sm:items-start">{mentor.photo_url ? <img src={mentor.photo_url} alt={`${mentor.name} profile`} className="h-28 w-28 shrink-0 rounded-full border border-ink/10 object-cover"/> : <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-board/10 font-display text-5xl text-board">{initial}</div>}<div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">Human mentor</p>{mentor.verification_status === "verified" && <span className="inline-flex items-center gap-1 rounded-full bg-board/10 px-2.5 py-1 text-[11px] font-semibold text-board"><ShieldCheck size={13}/> Verified</span>}</div><h1 className="mt-2 font-display text-3xl sm:text-4xl">{mentor.name}</h1><p className="mt-2 text-base text-ink/60">{mentor.headline || mentor.role || "Mentor"}</p><div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink/55">{average && <span className="inline-flex items-center gap-1"><Star size={15} className="fill-amber text-amber"/> {average} ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})</span>}{mentor.location && <span className="inline-flex items-center gap-1"><MapPin size={15}/> {mentor.location}</span>}{mentor.experience && <span>{mentor.experience}</span>}{mentor.company && <span>{mentor.company}</span>}</div><div className="mt-6 flex flex-wrap gap-3">{bookingUrl && <Link href={`/book/${mentor.id}`} className="inline-flex items-center gap-2 rounded-sm bg-amber px-6 py-3 text-sm font-semibold"><CalendarDays size={16}/> Book a 30-min call</Link>}{linkedinUrl && <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-sm border border-ink/20 px-6 py-3 text-sm hover:bg-ink/5"><span aria-hidden="true" className="font-bold">in</span> LinkedIn</a>}</div></div></div></section>
