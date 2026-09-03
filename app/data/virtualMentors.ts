@@ -14,7 +14,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Software Engineering",
     expertise: ["Programming", "DSA", "Web Development", "Career Guidance"],
     bio: "Helping aspiring and working software engineers build practical skills, strong projects, and clear career roadmaps.",
-    image: "/virtual-mentors/arjun-mehta.jpg",
+    image: "/virtual-mentors/arjun-mehta.svg",
   },
   {
     id: "priya-nair",
@@ -22,7 +22,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Product Management",
     expertise: ["Product Strategy", "Career Switching", "Startups"],
     bio: "Guidance for aspiring product managers, career switchers, and people learning how products and businesses work.",
-    image: "/virtual-mentors/priya-nair.jpg",
+    image: "/virtual-mentors/priya-nair.svg",
   },
   {
     id: "kabir-shah",
@@ -30,7 +30,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Data Science & AI",
     expertise: ["Data Science", "Machine Learning", "Artificial Intelligence"],
     bio: "Helping learners understand data, machine learning, AI careers, projects, and the skills worth focusing on.",
-    image: "/virtual-mentors/kabir-shah.jpg",
+    image: "/virtual-mentors/kabir-shah.svg",
   },
   {
     id: "meera-iyer",
@@ -38,7 +38,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "UX/UI Design",
     expertise: ["UX Design", "UI Design", "Portfolios", "Design Careers"],
     bio: "Practical guidance for learning design, building a portfolio, improving case studies, and entering the UX/UI industry.",
-    image: "/virtual-mentors/meera-iyer.jpg",
+    image: "/virtual-mentors/meera-iyer.svg",
   },
   {
     id: "rohan-kapoor",
@@ -46,7 +46,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Entrepreneurship & Startups",
     expertise: ["Startups", "Business Ideas", "Validation", "Growth"],
     bio: "Helping aspiring founders turn ideas into practical experiments and understand the realities of building a business.",
-    image: "/virtual-mentors/rohan-kapoor.jpg",
+    image: "/virtual-mentors/rohan-kapoor.svg",
   },
   {
     id: "aisha-khan",
@@ -54,7 +54,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Marketing & Growth",
     expertise: ["Digital Marketing", "Branding", "Growth", "Content"],
     bio: "Guidance for people exploring marketing careers, building audiences, understanding growth, and developing useful skills.",
-    image: "/virtual-mentors/aisha-khan.jpg",
+    image: "/virtual-mentors/aisha-khan.svg",
   },
   {
     id: "vikram-rao",
