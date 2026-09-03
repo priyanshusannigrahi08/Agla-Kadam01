@@ -1,127 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock3, History, Send, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock3, History, Search, Send, Sparkles, Trash2, X } from "lucide-react";
 import { virtualMentors } from "@/app/data/virtualMentors";
 import { supabase } from "@/lib/supabaseClient";
 
 type Message = { id: number; role: "mentor" | "user"; content: string };
-type StoredConversation = { id: string; mentorId: string; title: string; preview: string; messages: Message[]; updatedAt: string };
+type Conversation = { id: string; mentorId: string; title: string; preview: string; messages: Message[]; createdAt: string; updatedAt: string };
+type Row = { id: string; mentor_id: string; title: string; preview: string; messages: unknown; created_at: string; updated_at: string };
+const GUEST_KEY = "aglakadam-ai-history:guest";
 
-function storageKey(userId: string | null) { return `aglakadam-ai-history:${userId || "guest"}`; }
-function readHistory(key: string): StoredConversation[] {
-  try { const value = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; }
-}
-function saveConversation(key: string, conversation: StoredConversation) {
-  const history = readHistory(key).filter((item) => item.id !== conversation.id);
-  history.unshift(conversation);
-  localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
-}
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recently";
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) return `Today, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
-  return date.toLocaleDateString([], { day: "numeric", month: "short", year: date.getFullYear() === now.getFullYear() ? undefined : "numeric" });
-}
-function renderInline(text: string) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith("`") && part.endsWith("`")) return <code key={index} className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-[0.9em]">{part.slice(1, -1)}</code>;
-    return <span key={index}>{part}</span>;
-  });
-}
-function ConversationText({ content }: { content: string }) {
-  return <div className="space-y-3 text-sm leading-7 sm:text-[15px]">{content.replace(/\r\n/g, "\n").split("\n\n").map((block, index) => {
-    const lines = block.split("\n");
-    if (lines.every((line) => /^[-*]\s+/.test(line.trim()))) return <ul key={index} className="ml-5 list-disc space-y-1">{lines.map((line, i) => <li key={i}>{renderInline(line.trim().replace(/^[-*]\s+/, ""))}</li>)}</ul>;
-    return <p key={index}>{renderInline(lines.join(" "))}</p>;
-  })}</div>;
-}
+function formatDate(value: string) { const date = new Date(value); if (Number.isNaN(date.getTime())) return "Recently"; const now = new Date(); if (date.toDateString() === now.toDateString()) return `Today, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`; return date.toLocaleDateString([], { day: "numeric", month: "short", year: date.getFullYear() === now.getFullYear() ? undefined : "numeric" }); }
+function readGuestHistory(): Conversation[] { try { const value = JSON.parse(localStorage.getItem(GUEST_KEY) || "[]"); if (!Array.isArray(value)) return []; return value.map((item) => ({ id: String(item.id), mentorId: String(item.mentorId), title: String(item.title || "Conversation with AI mentor"), preview: String(item.preview || ""), messages: Array.isArray(item.messages) ? item.messages : [], createdAt: String(item.createdAt || item.updatedAt || new Date().toISOString()), updatedAt: String(item.updatedAt || new Date().toISOString()) })); } catch { return []; } }
+function toConversation(row: Row): Conversation { return { id: row.id, mentorId: row.mentor_id, title: row.title, preview: row.preview || "", messages: Array.isArray(row.messages) ? row.messages as Message[] : [], createdAt: row.created_at, updatedAt: row.updated_at }; }
+function renderInline(text: string) { return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : part.startsWith("`") && part.endsWith("`") ? <code key={index} className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-[0.9em]">{part.slice(1, -1)}</code> : <span key={index}>{part}</span>); }
+function ConversationText({ content }: { content: string }) { return <div className="space-y-3 text-sm leading-7 sm:text-[15px]">{content.replace(/\r\n/g, "\n").split("\n\n").map((block, index) => { const lines = block.split("\n"); if (lines.every((line) => /^[-*]\s+/.test(line.trim()))) return <ul key={index} className="ml-5 list-disc space-y-1">{lines.map((line, i) => <li key={i}>{renderInline(line.trim().replace(/^[-*]\s+/, ""))}</li>)}</ul>; return <p key={index}>{renderInline(lines.join(" "))}</p>; })}</div>; }
+
+async function migrateGuestHistory(userId: string) { const local = readGuestHistory(); if (!local.length) return; for (const conversation of local) { const { error } = await supabase.from("ai_conversations").insert({ user_id: userId, mentor_id: conversation.mentorId, title: conversation.title, preview: conversation.preview, messages: conversation.messages, created_at: conversation.createdAt, updated_at: conversation.updatedAt }); if (error) throw error; } localStorage.removeItem(GUEST_KEY); }
 
 function AiMentorPageContent() {
-  const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
-  const mentorId = typeof params.id === "string" ? params.id : "";
-  const requestedConversation = searchParams.get("conversation");
+  const params = useParams<{ id: string }>(); const searchParams = useSearchParams(); const router = useRouter();
+  const mentorId = typeof params.id === "string" ? params.id : ""; const requestedConversation = searchParams.get("conversation");
   const mentor = useMemo(() => virtualMentors.find((item) => item.id.toLowerCase() === mentorId.toLowerCase()), [mentorId]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(requestedConversation);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const submittingRef = useRef(false);
+  const [messages, setMessages] = useState<Message[]>([]); const [message, setMessage] = useState(""); const [isLoading, setIsLoading] = useState(false); const [historyLoading, setHistoryLoading] = useState(true); const [error, setError] = useState(""); const [userId, setUserId] = useState<string | null>(null); const [conversations, setConversations] = useState<Conversation[]>([]); const [conversationId, setConversationId] = useState<string | null>(requestedConversation); const [historySearch, setHistorySearch] = useState(""); const [historyOpen, setHistoryOpen] = useState(false); const submittingRef = useRef(false);
 
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getUser().then(({ data }) => { if (active) setUserId(data.user?.id || null); });
-    return () => { active = false; };
-  }, []);
+  useEffect(() => { let active = true; supabase.auth.getUser().then(({ data }) => { if (active) setUserId(data.user?.id || null); }); return () => { active = false; }; }, []);
+  useEffect(() => { let active = true; async function loadHistory() { setHistoryLoading(true); try { if (!userId) { if (active) setConversations([]); return; } await migrateGuestHistory(userId); const { data, error: fetchError } = await supabase.from("ai_conversations").select("id, mentor_id, title, preview, messages, created_at, updated_at").order("updated_at", { ascending: false }); if (fetchError) throw fetchError; if (active) setConversations(((data || []) as Row[]).map(toConversation)); } catch (historyError) { console.error("AI history load error:", historyError); if (active) setError("Your synced history could not be loaded. You can still chat, but try refreshing before closing this page."); } finally { if (active) setHistoryLoading(false); } } loadHistory(); return () => { active = false; }; }, [userId]);
+  useEffect(() => { if (!mentor) return; const existing = requestedConversation ? conversations.find((item) => item.id === requestedConversation && item.mentorId === mentor.id) : null; if (existing) { setMessages(existing.messages); setConversationId(existing.id); } else { setMessages([]); setConversationId(null); } }, [mentor, requestedConversation, conversations]);
 
-  useEffect(() => {
-    if (!mentor) return;
-    const existing = requestedConversation ? readHistory(storageKey(userId)).find((item) => item.id === requestedConversation && item.mentorId === mentor.id) : null;
-    if (existing) { setMessages(existing.messages); setConversationId(existing.id); } else { setMessages([]); setConversationId(null); }
-  }, [mentor, userId, requestedConversation]);
-
+  const filteredConversations = useMemo(() => { const q = historySearch.trim().toLowerCase(); if (!q) return conversations; return conversations.filter((item) => { const m = virtualMentors.find((candidate) => candidate.id === item.mentorId); return [item.title, item.preview, m?.name, m?.profession, ...(m?.expertise || [])].some((value) => value?.toLowerCase().includes(q)); }); }, [conversations, historySearch]);
   if (!mentor) return <main className="min-h-screen bg-paper px-6 py-20 text-ink"><div className="mx-auto max-w-2xl"><Link href="/mentors" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">← Back to mentors</Link><h1 className="mt-8 font-display text-3xl">Mentor not found</h1></div></main>;
+  const currentMentor = mentor; const displayedMessages: Message[] = messages.length ? messages : [{ id: 1, role: "mentor", content: `Hi, I'm ${currentMentor.name}. I'm here to help you with ${currentMentor.profession.toLowerCase()} and your career journey. What are you trying to figure out?` }];
 
-  const currentMentor = mentor;
-  const displayedMessages: Message[] = messages.length ? messages : [{ id: 1, role: "mentor", content: `Hi, I'm ${currentMentor.name}. I'm here to help you with ${currentMentor.profession.toLowerCase()} and your career journey. What are you trying to figure out?` }];
-  const history = typeof window !== "undefined" ? readHistory(storageKey(userId)).filter((item) => item.mentorId === currentMentor.id) : [];
+  function startNewConversation() { setMessages([]); setConversationId(null); setMessage(""); setError(""); setHistoryOpen(false); router.replace(`/ai-mentor/${currentMentor.id}`); }
+  async function deleteConversation(id: string) { if (!userId) return; const { error: deleteError } = await supabase.from("ai_conversations").delete().eq("id", id); if (deleteError) { setError("That conversation could not be deleted. Please try again."); return; } setConversations((items) => items.filter((item) => item.id !== id)); if (conversationId === id) startNewConversation(); }
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (submittingRef.current) return; const trimmed = message.trim(); if (!trimmed || trimmed.length > 4000) return; submittingRef.current = true; setIsLoading(true); setError(""); const userMessage: Message = { id: Date.now(), role: "user", content: trimmed }; const apiMessages = [...messages, userMessage]; const nextMessages = [...displayedMessages, userMessage]; setMessages(nextMessages); setMessage(""); try { const response = await fetch("/api/ai-mentor/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mentorId: currentMentor.id, messages: apiMessages.map((item) => ({ role: item.role === "mentor" ? "assistant" : "user", content: item.content })) }) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "The AI mentor could not respond. Please try again."); if (!data?.reply || typeof data.reply !== "string") throw new Error("The mentor returned an empty response. Please try again."); const mentorReply: Message = { id: Date.now() + 1, role: "mentor", content: data.reply }; const finalMessages = [...nextMessages, mentorReply]; setMessages(finalMessages); if (userId) { const firstUser = finalMessages.find((item) => item.role === "user")?.content || "Conversation with AI mentor"; const title = firstUser.length > 70 ? `${firstUser.slice(0, 70)}…` : firstUser; const preview = data.reply.length > 180 ? `${data.reply.slice(0, 180)}…` : data.reply; if (conversationId) { const { error: updateError } = await supabase.from("ai_conversations").update({ title, preview, messages: finalMessages }).eq("id", conversationId); if (updateError) throw updateError; const now = new Date().toISOString(); setConversations((items) => items.map((item) => item.id === conversationId ? { ...item, title, preview, messages: finalMessages, updatedAt: now } : item).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))); } else { const { data: inserted, error: insertError } = await supabase.from("ai_conversations").insert({ user_id: userId, mentor_id: currentMentor.id, title, preview, messages: finalMessages }).select("id, mentor_id, title, preview, messages, created_at, updated_at").single(); if (insertError) throw insertError; const created = toConversation(inserted as Row); setConversationId(created.id); setConversations((items) => [created, ...items]); router.replace(`/ai-mentor/${currentMentor.id}?conversation=${encodeURIComponent(created.id)}`); } } } catch (submitError) { console.error("Mentor chat error:", submitError); setError(submitError instanceof Error ? submitError.message : "Something went wrong. Please try again."); } finally { setIsLoading(false); submittingRef.current = false; } }
 
-  function startNewConversation() { setMessages([]); setConversationId(null); setError(""); setHistoryOpen(false); }
-  function deleteCurrentConversation() {
-    if (!conversationId) return;
-    const key = storageKey(userId);
-    localStorage.setItem(key, JSON.stringify(readHistory(key).filter((item) => item.id !== conversationId)));
-    startNewConversation();
-  }
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submittingRef.current) return;
-    const trimmed = message.trim();
-    if (!trimmed || trimmed.length > 4000) return;
-    submittingRef.current = true; setIsLoading(true); setError("");
-    const userMessage: Message = { id: Date.now(), role: "user", content: trimmed };
-    const nextMessages = [...displayedMessages, userMessage];
-    setMessages(nextMessages); setMessage("");
-    try {
-      const response = await fetch("/api/ai-mentor/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mentorId: currentMentor.id, messages: nextMessages.map((item) => ({ role: item.role === "mentor" ? "assistant" : "user", content: item.content })) }) });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "The AI mentor could not respond. Please try again.");
-      if (!data?.reply || typeof data.reply !== "string") throw new Error("The mentor returned an empty response. Please try again.");
-      const mentorReply: Message = { id: Date.now() + 1, role: "mentor", content: data.reply };
-      const finalMessages = [...nextMessages, mentorReply];
-      setMessages(finalMessages);
-      const id = conversationId || `${currentMentor.id}-${Date.now()}`;
-      setConversationId(id);
-      const firstUser = finalMessages.find((item) => item.role === "user")?.content || "Conversation with AI mentor";
-      saveConversation(storageKey(userId), { id, mentorId: currentMentor.id, title: firstUser.length > 70 ? `${firstUser.slice(0, 70)}…` : firstUser, preview: data.reply.length > 180 ? `${data.reply.slice(0, 180)}…` : data.reply, messages: finalMessages, updatedAt: new Date().toISOString() });
-    } catch (submitError) {
-      console.error("Mentor chat error:", submitError);
-      setError(submitError instanceof Error ? submitError.message : "Something went wrong. Please try again.");
-    } finally { setIsLoading(false); submittingRef.current = false; }
-  }
-
-  return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-6 sm:px-8 sm:py-8">
-    <header className="flex items-center justify-between gap-4 border-b border-ink/10 pb-5">
-      <Link href="/mentors" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-board/60 transition hover:text-board"><ArrowLeft size={14} /> Back to mentors</Link>
-      <div className="flex items-center gap-2"><Link href="/ai-history" className="hidden items-center gap-2 rounded-sm border border-ink/10 bg-white px-3 py-2 text-xs font-medium transition hover:border-board/25 sm:inline-flex"><History size={14} /> All history</Link><button type="button" onClick={() => setHistoryOpen((open) => !open)} className="inline-flex items-center gap-2 rounded-sm border border-ink/10 bg-white px-3 py-2 text-xs font-medium sm:hidden"><History size={14} /> History</button><button type="button" onClick={startNewConversation} className="inline-flex items-center gap-2 rounded-sm bg-amber px-3 py-2 text-xs font-semibold"><Sparkles size={14} /> New chat</button></div>
-    </header>
-    <div className="grid flex-1 gap-6 pt-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <section className="flex min-h-[70vh] flex-col overflow-hidden rounded-md border border-ink/10 bg-white">
-        <div className="flex items-center gap-4 border-b border-ink/10 p-5 sm:p-6"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-ink/10 bg-board/10 sm:h-16 sm:w-16">{currentMentor.image ? <img src={currentMentor.image} alt={`${currentMentor.name} profile`} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-display text-xl">{currentMentor.name.charAt(0)}</div>}</div><div className="min-w-0 flex-1"><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-board/50">AI mentor</p><h1 className="font-display text-2xl sm:text-3xl">{currentMentor.name}</h1><p className="text-sm text-ink/50">{currentMentor.profession}</p></div>{conversationId && <button type="button" onClick={deleteCurrentConversation} title="Delete this conversation" aria-label="Delete this conversation" className="rounded-sm p-2 text-ink/25 transition hover:bg-red-50 hover:text-red-600"><Trash2 size={17} /></button>}</div>
-        <div className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-8">{displayedMessages.map((item) => <div key={item.id} className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}><div className={`max-w-[90%] rounded-md px-4 py-3 sm:max-w-[78%] sm:px-5 ${item.role === "user" ? "bg-board text-paper" : "border border-ink/8 bg-paper"}`}>{item.role === "mentor" && <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-board/50">{currentMentor.name}</p>}<ConversationText content={item.content} /></div></div>)}{isLoading && <div className="flex justify-start"><div className="rounded-md border border-ink/8 bg-paper px-5 py-4 text-sm text-ink/45">{currentMentor.name} is thinking…</div></div>}{error && <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</div>}</div>
-        <form onSubmit={handleSubmit} className="border-t border-ink/10 p-4 sm:p-5"><div className="flex items-end gap-3 rounded-md border border-ink/15 bg-paper p-2 focus-within:border-board/35"><textarea value={message} onChange={(event) => setMessage(event.target.value)} disabled={isLoading} maxLength={4000} rows={2} placeholder={`Ask ${currentMentor.name} anything…`} className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-ink/35" onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><button type="submit" disabled={isLoading || !message.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-amber text-ink transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"><Send size={17} /></button></div><div className="mt-2 flex justify-between px-1 text-[10px] text-ink/35"><span>Enter to send · Shift + Enter for a new line</span><span>{message.length}/4000</span></div></form>
-      </section>
-      <aside className={`${historyOpen ? "block" : "hidden"} lg:block`}><div className="rounded-md border border-ink/10 bg-white p-5 lg:sticky lg:top-6"><div className="flex items-center justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-board/50">Saved chats</p><h2 className="mt-1 font-display text-xl">Your history</h2></div><Clock3 size={18} className="text-board/45" /></div>{history.length === 0 ? <p className="mt-5 text-sm leading-6 text-ink/50">Your conversations with this mentor will appear here after your first message.</p> : <div className="mt-5 space-y-2">{history.slice(0, 8).map((item) => <Link key={item.id} href={`/ai-mentor/${currentMentor.id}?conversation=${encodeURIComponent(item.id)}`} className={`group block rounded-sm border p-3 transition ${item.id === conversationId ? "border-board/25 bg-board/[0.035]" : "border-ink/8 hover:border-board/20"}`}><p className="line-clamp-2 text-xs font-medium leading-5">{item.title}</p><p className="mt-1 text-[10px] text-ink/40">{formatDate(item.updatedAt)} · {item.messages.length} messages</p></Link>)}<Link href="/ai-history" className="mt-2 flex items-center justify-center gap-2 rounded-sm border border-ink/10 py-2.5 text-xs font-medium text-board transition hover:border-board/25">View all history <ArrowRight size={13} /></Link></div>}</div></aside>
-    </div>
-  </div></main>;
+  return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto flex min-h-screen max-w-[1500px] flex-col px-4 py-4 sm:px-6 sm:py-6"><header className="flex items-center justify-between gap-4 border-b border-ink/10 pb-4"><Link href="/mentors" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-board/60 transition hover:text-board"><ArrowLeft size={14} /> Back to mentors</Link><div className="flex items-center gap-2"><Link href="/ai-history" className="hidden items-center gap-2 rounded-sm border border-ink/10 bg-white px-3 py-2 text-xs font-medium sm:inline-flex"><History size={14} /> All history</Link><button type="button" onClick={() => setHistoryOpen((open) => !open)} className="inline-flex items-center gap-2 rounded-sm border border-ink/10 bg-white px-3 py-2 text-xs font-medium lg:hidden"><History size={14} /> History</button><button type="button" onClick={startNewConversation} className="inline-flex items-center gap-2 rounded-sm bg-amber px-3 py-2 text-xs font-semibold"><Sparkles size={14} /> New chat</button></div></header>
+    <div className="relative grid flex-1 gap-4 pt-4 lg:grid-cols-[270px_minmax(0,1fr)]"><aside className={`${historyOpen ? "absolute inset-x-0 top-4 z-20 block" : "hidden"} lg:static lg:block`}><div className="flex h-[calc(100vh-105px)] max-h-[820px] min-h-[560px] flex-col rounded-md border border-ink/10 bg-white p-3 shadow-sm lg:sticky lg:top-4"><div className="flex items-center justify-between px-2 py-1"><div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-board/50">Your workspace</p><h2 className="mt-1 font-display text-xl">History</h2></div><button type="button" onClick={() => setHistoryOpen(false)} className="rounded-sm p-2 text-ink/35 lg:hidden" aria-label="Close history"><X size={17} /></button></div><label className="relative mt-3 block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" /><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Search conversations" className="input h-10 w-full pl-9 pr-3 text-xs" /></label><button type="button" onClick={startNewConversation} className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm bg-amber px-3 py-2.5 text-xs font-semibold"><Sparkles size={14} /> New conversation</button><div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">{historyLoading ? <p className="px-2 py-4 text-xs text-ink/40">Loading your history…</p> : !userId ? <div className="rounded-sm border border-ink/8 bg-paper p-3 text-xs leading-5 text-ink/55">Sign in to keep conversations synced to your account. Guest chats stay only in this browser.</div> : filteredConversations.length === 0 ? <p className="px-2 py-4 text-xs leading-5 text-ink/40">{historySearch ? "No conversations match your search." : "Your saved conversations will appear here."}</p> : <div className="space-y-1">{filteredConversations.map((item) => { const m = virtualMentors.find((candidate) => candidate.id === item.mentorId); return <Link key={item.id} href={`/ai-mentor/${item.mentorId}?conversation=${encodeURIComponent(item.id)}`} onClick={() => setHistoryOpen(false)} className={`group block rounded-sm border p-3 transition ${item.id === conversationId ? "border-board/25 bg-board/[0.04]" : "border-transparent hover:border-ink/10 hover:bg-paper"}`}><div className="flex items-start gap-2.5"><div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-board/10">{m?.image ? <img src={m.image} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-display text-sm">{m?.name.charAt(0) || "A"}</span>}</div><div className="min-w-0 flex-1"><p className="line-clamp-2 text-xs font-medium leading-4">{item.title}</p><p className="mt-1 truncate text-[10px] text-ink/40">{m?.name || "AI mentor"} · {formatDate(item.updatedAt)}</p></div><button type="button" aria-label={`Delete ${item.title}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void deleteConversation(item.id); }} className="rounded-sm p-1 text-ink/20 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"><Trash2 size={13} /></button></div></Link>; })}</div>}</div><div className="mt-3 border-t border-ink/8 px-2 pt-3"><Link href="/ai-history" className="flex items-center gap-2 text-xs font-medium text-board/65 hover:text-board"><Clock3 size={13} /> Manage all history</Link></div></div></aside>
+    <section className="flex min-h-[calc(100vh-105px)] flex-col overflow-hidden rounded-md border border-ink/10 bg-white shadow-sm"><div className="flex items-center gap-4 border-b border-ink/10 p-4 sm:p-5"><div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-ink/10 bg-board/10 sm:h-14 sm:w-14">{currentMentor.image ? <img src={currentMentor.image} alt={`${currentMentor.name} profile`} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-display text-xl">{currentMentor.name.charAt(0)}</div>}</div><div className="min-w-0 flex-1"><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-board/50">AI mentor</p><h1 className="font-display text-2xl sm:text-3xl">{currentMentor.name}</h1><p className="text-sm text-ink/50">{currentMentor.profession}</p></div>{conversationId && userId && <button type="button" onClick={() => void deleteConversation(conversationId)} title="Delete this conversation" aria-label="Delete this conversation" className="rounded-sm p-2 text-ink/25 transition hover:bg-red-50 hover:text-red-600"><Trash2 size={17} /></button>}</div><div className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-8">{displayedMessages.map((item) => <div key={item.id} className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}><div className={`max-w-[90%] rounded-md px-4 py-3 sm:max-w-[78%] sm:px-5 ${item.role === "user" ? "bg-board text-paper" : "border border-ink/8 bg-paper"}`}>{item.role === "mentor" && <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-board/50">{currentMentor.name}</p>}<ConversationText content={item.content} /></div></div>)}{isLoading && <div className="flex justify-start"><div className="rounded-md border border-ink/8 bg-paper px-5 py-4 text-sm text-ink/45">{currentMentor.name} is thinking…</div></div>}{error && <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</div>}</div><form onSubmit={handleSubmit} className="border-t border-ink/10 p-4 sm:p-5"><div className="flex items-end gap-3 rounded-md border border-ink/15 bg-paper p-2 focus-within:border-board/35"><textarea value={message} onChange={(event) => setMessage(event.target.value)} disabled={isLoading} maxLength={4000} rows={2} placeholder={`Ask ${currentMentor.name} anything…`} className="min-h-12 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-ink/35" onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><button type="submit" disabled={isLoading || !message.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-amber text-ink transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"><Send size={17} /></button></div><div className="mt-2 flex justify-between px-1 text-[10px] text-ink/35"><span>Enter to send · Shift + Enter for a new line</span><span>{message.length}/4000</span></div></form></section></div></div></main>;
 }
 
 export default function AiMentorPage() { return <Suspense fallback={<main className="min-h-screen bg-paper px-6 py-20 text-ink"><div className="mx-auto max-w-3xl font-mono text-xs uppercase tracking-[0.15em] text-board/50">Loading mentor…</div></main>}><AiMentorPageContent /></Suspense>; }
