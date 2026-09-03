@@ -16,7 +16,8 @@ and career switchers — to find a mentor, explore their experience, and book a
 - External calendar booking with a dashboard record at `/book/[id]`
 - Published mentor reviews at `/review`
 - Email/authentication flows through Supabase
-- Optional AI mentor guidance
+- Optional AI mentor guidance with account-synced conversation history
+- ChatGPT-style left history sidebar and conversation search
 - Mentor and mentee profile forms with profile photos
 - Cal.com webhook synchronization for booking status and scheduled time
 
@@ -76,6 +77,9 @@ Run the SQL scripts in this order in the Supabase SQL Editor:
 4. [`supabase/calcom_integration.sql`](./supabase/calcom_integration.sql) — adds
    nullable Cal.com booking identifiers/status fields and indexes. It is
    backward-compatible with existing booking rows.
+5. [`supabase/ai_conversations.sql`](./supabase/ai_conversations.sql) — adds
+   private, account-owned AI mentor conversations with RLS, indexes and an
+   automatic `updated_at` trigger.
 
 `mentors_public` is a dedicated projection table, not a public SQL view. A
 trigger keeps it synchronized with approved mentors while keeping private
@@ -83,6 +87,18 @@ mentor fields out of the public Data API.
 
 To publish a mentor, change their `mentors.status` from `pending` to
 `approved` in the Supabase Table Editor.
+
+### AI conversation history
+
+Signed-in users can open an AI mentor and have each conversation saved to
+`ai_conversations`. The AI mentor screen provides a persistent left-hand
+sidebar with all of the user's AI chats, a search box, new-chat control and
+delete actions. `/ai-history` provides the full history view.
+
+Row-level security ensures a user can only read, create, update or delete
+their own conversations. The older browser-local history format is migrated
+once into Supabase when a user signs in, then removed from local storage.
+Guest chats can still be used, but they are not account-synced.
 
 ### Cal.com webhook setup
 
@@ -143,6 +159,7 @@ app/
   review/page.tsx
   dashboard/page.tsx
   ai-mentor/[id]/page.tsx
+  ai-history/page.tsx
   api/ai-mentor/chat/route.ts
   api/webhooks/calcom/route.ts
   mentor/page.tsx
@@ -159,6 +176,7 @@ supabase/
   platform_upgrade.sql
   production_hardening.sql
   calcom_integration.sql
+  ai_conversations.sql
 ```
 
 ## Roadmap
@@ -170,6 +188,7 @@ supabase/
 - [x] Reviews with database-level eligibility checks
 - [x] Profile photo storage
 - [x] AI mentor request validation and basic rate limiting
+- [x] Account-synced AI mentor conversations and searchable history
 - [x] Cal.com webhook receiver and booking synchronization
 - [ ] Metadata-first booking correlation for the new booking flow
 - [ ] Admin dashboard for mentor/review approval
