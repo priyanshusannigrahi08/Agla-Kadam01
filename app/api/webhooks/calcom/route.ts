@@ -167,7 +167,10 @@ export async function POST(request: Request) {
   if (startTime) update.scheduled_for = startTime;
   if (!(booking.status === "completed" && nextStatus === "cancelled")) update.status = nextStatus;
 
-  const { error: updateError } = await admin.from("bookings").update(update).eq("id", booking.id);
+  // The admin client is intentionally created without generated Database types.
+  // Cast the update payload at this boundary so Supabase's untyped table overload
+  // does not infer the update argument as `never` during the Next.js build.
+  const { error: updateError } = await admin.from("bookings").update(update as never).eq("id", booking.id);
   if (updateError) {
     console.error("Cal.com webhook booking update failed.");
     return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
