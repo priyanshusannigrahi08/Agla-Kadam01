@@ -84,7 +84,7 @@ create policy "Users can create eligible pending reviews"
       select 1 from public.bookings b
       where b.mentee_user_id = auth.uid()
         and b.mentor_id = reviews.mentor_id
-        and b.status in ('requested', 'confirmed', 'completed')
+        and b.status = 'completed'
     )
   );
 
@@ -118,8 +118,7 @@ drop policy if exists "Users can read own mentee profile" on mentees;
 create policy "Users can read own mentee profile"
   on mentees for select to authenticated using (user_id = auth.uid());
 
--- Public mentor data is stored in a dedicated projection table instead of a
--- PostgreSQL view. This keeps private mentor fields out of the public API.
+-- Public mentor data is stored in a dedicated projection table instead of a PostgreSQL view.
 drop view if exists mentors_public;
 create table if not exists mentors_public (
   id uuid primary key references mentors(id) on delete cascade,
