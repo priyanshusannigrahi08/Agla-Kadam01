@@ -60,21 +60,36 @@ select:focus-visible {
   background-size: 18px 18px;
 }
 
-.input {
+.input,
+.form-input {
   width: 100%;
   background-color: #ffffff;
   border: 1px solid rgba(23, 34, 28, 0.15);
   border-radius: 2px;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   font-family: var(--font-inter), sans-serif;
   font-size: 0.95rem;
+  line-height: 1.5;
   color: #17221c;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-.input:focus {
-  border-color: #e2a63b;
+.input:focus,
+.form-input:focus {
+  border-color: rgba(226, 166, 59, 0.9);
+  box-shadow: 0 0 0 3px rgba(226, 166, 59, 0.12);
+  outline: none;
 }
 
-.input::placeholder {
+.input::placeholder,
+.form-input::placeholder {
   color: rgba(23, 34, 28, 0.35);
+}
+
+.form-input:invalid:not(:placeholder-shown) {
+  border-color: rgba(185, 28, 28, 0.35);
+}
+
+textarea.form-input {
+  min-height: 120px;
 }
