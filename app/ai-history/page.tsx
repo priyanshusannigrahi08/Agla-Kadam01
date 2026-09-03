@@ -9,65 +9,20 @@ import { virtualMentors } from "@/app/data/virtualMentors";
 type Message = { role: "mentor" | "user"; content: string };
 type Conversation = { id: string; mentorId: string; title: string; preview: string; messages: Message[]; createdAt: string; updatedAt: string };
 type Row = { id: string; mentor_id: string; title: string; preview: string; messages: unknown; created_at: string; updated_at: string };
+const GUEST_KEY = "aglakadam-ai-history:guest";
 
-function toConversation(row: Row): Conversation {
-  return { id: row.id, mentorId: row.mentor_id, title: row.title, preview: row.preview || "", messages: Array.isArray(row.messages) ? row.messages as Message[] : [], createdAt: row.created_at, updatedAt: row.updated_at };
-}
+function readLocal(key: string): Conversation[] { try { const value = JSON.parse(localStorage.getItem(key) || "[]"); if (!Array.isArray(value)) return []; return value.map((item) => ({ id: String(item.id), mentorId: String(item.mentorId), title: String(item.title || "Conversation with AI mentor"), preview: String(item.preview || ""), messages: Array.isArray(item.messages) ? item.messages : [], createdAt: String(item.createdAt || item.updatedAt || new Date().toISOString()), updatedAt: String(item.updatedAt || new Date().toISOString()) })); } catch { return []; } }
+function toConversation(row: Row): Conversation { return { id: row.id, mentorId: row.mentor_id, title: row.title, preview: row.preview || "", messages: Array.isArray(row.messages) ? row.messages as Message[] : [], createdAt: row.created_at, updatedAt: row.updated_at }; }
+function formatDate(value: string) { const date = new Date(value); if (Number.isNaN(date.getTime())) return "Recently"; const now = new Date(); if (date.toDateString() === now.toDateString()) return `Today, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`; return date.toLocaleDateString([], { day: "numeric", month: "short", year: date.getFullYear() === now.getFullYear() ? undefined : "numeric" }); }
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recently";
-  const now = new Date();
-  if (date.toDateString() === now.toDateString()) return `Today, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
-  return date.toLocaleDateString([], { day: "numeric", month: "short", year: date.getFullYear() === now.getFullYear() ? undefined : "numeric" });
-}
+async function migrateLocal(userId: string) { const keys = [GUEST_KEY, `aglakadam-ai-history:${userId}`]; const local = keys.flatMap((key) => readLocal(key)); const seen = new Set<string>(); for (const conversation of local) { const fingerprint = `${conversation.mentorId}|${conversation.title}|${conversation.updatedAt}`; if (seen.has(fingerprint)) continue; seen.add(fingerprint); const { error } = await supabase.from("ai_conversations").insert({ user_id: userId, mentor_id: conversation.mentorId, title: conversation.title, preview: conversation.preview, messages: conversation.messages, created_at: conversation.createdAt, updated_at: conversation.updatedAt }); if (error) throw error; } keys.forEach((key) => localStorage.removeItem(key)); }
 
 export default function AiHistoryPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [history, setHistory] = useState<Conversation[]>([]);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      const { data } = await supabase.auth.getUser();
-      if (!active) return;
-      const id = data.user?.id || null;
-      setUserId(id);
-      if (!id) { setLoading(false); return; }
-      const { data: rows, error: fetchError } = await supabase.from("ai_conversations").select("id, mentor_id, title, preview, messages, created_at, updated_at").order("updated_at", { ascending: false });
-      if (!active) return;
-      if (fetchError) setError("Your conversation history could not be loaded. Please try again.");
-      else setHistory(((rows || []) as Row[]).map(toConversation));
-      setLoading(false);
-    }
-    load();
-    return () => { active = false; };
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return history;
-    return history.filter((conversation) => {
-      const mentor = virtualMentors.find((item) => item.id === conversation.mentorId);
-      return [conversation.title, conversation.preview, mentor?.name, mentor?.profession, ...(mentor?.expertise || [])].some((value) => value?.toLowerCase().includes(q));
-    });
-  }, [history, query]);
-
-  async function deleteConversation(id: string) {
-    const { error: deleteError } = await supabase.from("ai_conversations").delete().eq("id", id);
-    if (deleteError) { setError("That conversation could not be deleted. Please try again."); return; }
-    setHistory((items) => items.filter((item) => item.id !== id));
-  }
-
-  async function clearHistory() {
-    if (!userId || history.length === 0) return;
-    const { error: deleteError } = await supabase.from("ai_conversations").delete().eq("user_id", userId);
-    if (deleteError) { setError("Your history could not be cleared. Please try again."); return; }
-    setHistory([]);
-  }
+  const [userId, setUserId] = useState<string | null>(null); const [history, setHistory] = useState<Conversation[]>([]); const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  useEffect(() => { let active = true; async function load() { const { data } = await supabase.auth.getUser(); if (!active) return; const id = data.user?.id || null; setUserId(id); if (!id) { setLoading(false); return; } try { await migrateLocal(id); const { data: rows, error: fetchError } = await supabase.from("ai_conversations").select("id, mentor_id, title, preview, messages, created_at, updated_at").order("updated_at", { ascending: false }); if (fetchError) throw fetchError; if (active) setHistory(((rows || []) as Row[]).map(toConversation)); } catch (loadError) { console.error("AI history load error:", loadError); if (active) setError("Your conversation history could not be loaded. Please try again."); } finally { if (active) setLoading(false); } } load(); return () => { active = false; }; }, []);
+  const filtered = useMemo(() => { const q = query.trim().toLowerCase(); if (!q) return history; return history.filter((conversation) => { const mentor = virtualMentors.find((item) => item.id === conversation.mentorId); return [conversation.title, conversation.preview, mentor?.name, mentor?.profession, ...(mentor?.expertise || [])].some((value) => value?.toLowerCase().includes(q)); }); }, [history, query]);
+  async function deleteConversation(id: string) { const { error: deleteError } = await supabase.from("ai_conversations").delete().eq("id", id); if (deleteError) { setError("That conversation could not be deleted. Please try again."); return; } setHistory((items) => items.filter((item) => item.id !== id)); }
+  async function clearHistory() { if (!userId || history.length === 0) return; const { error: deleteError } = await supabase.from("ai_conversations").delete().eq("user_id", userId); if (deleteError) { setError("Your history could not be cleared. Please try again."); return; } setHistory([]); }
 
   return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto max-w-6xl px-5 py-6 sm:px-8 sm:py-10"><div className="flex items-center justify-between gap-4 border-b border-ink/10 pb-5"><Link href="/mentors" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">← Back to mentors</Link>{userId && history.length > 0 && <button type="button" onClick={() => void clearHistory()} className="text-xs font-medium text-ink/45 hover:text-red-600">Clear history</button>}</div>
     <header className="mt-10 flex flex-wrap items-end justify-between gap-6"><div><p className="font-mono text-xs uppercase tracking-[0.16em] text-board/55">Your AI workspace</p><h1 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">Conversation history.</h1><p className="mt-4 max-w-2xl text-base leading-7 text-ink/60">Everything you discuss with an AI mentor, synced to your account so you can pick it up on another device.</p></div>{userId && <label className="relative block w-full sm:w-80"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search conversations" className="input h-11 w-full pl-9 pr-3 text-sm" /></label>}</header>
