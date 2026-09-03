@@ -108,10 +108,10 @@ export async function POST(request: Request) {
     booking = data?.[0] ?? null;
   }
 
-  // Backward-compatible correlation for booking rows created by the existing
-  // manual flow before Cal.com identifiers were stored. The active-booking
-  // uniqueness rule keeps this conservative: exactly one active pair matches.
-  if (!booking && attendeeEmail && organizerEmail) {
+  // Only use email correlation for creation/request events. A cancellation
+  // webhook for an unknown legacy UID must never cancel a newer booking for
+  // the same mentor/mentee pair.
+  if (!booking && ["BOOKING_CREATED", "BOOKING_REQUESTED"].includes(triggerEvent) && attendeeEmail && organizerEmail) {
     const { data: mentors } = await admin.from("mentors").select("id").eq("email", organizerEmail).limit(2);
     const { data: mentees } = await admin.from("mentees").select("user_id").eq("email", attendeeEmail).not("user_id", "is", null).limit(2);
 
