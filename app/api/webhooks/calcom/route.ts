@@ -11,6 +11,17 @@ const BOOKING_EVENTS = new Set([
   "BOOKING_CANCELLED",
 ]);
 
+type Booking = {
+  id: string;
+  mentor_id: string;
+  mentee_user_id: string;
+  status: string;
+  calcom_booking_uid: string | null;
+};
+
+type MentorLookup = { id: string };
+type MenteeLookup = { user_id: string | null };
+
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
@@ -89,34 +100,47 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  type Booking = { id: string; mentor_id: string; mentee_user_id: string; status: string; calcom_booking_uid: string | null };
   let booking: Booking | null = null;
 
   if (metadataBookingId) {
-    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("id", metadataBookingId).limit(1);
-    booking = data?.[0] ?? null;
+    const { data } = await admin
+      .from("bookings")
+      .select("id,mentor_id,mentee_user_id,status,calcom_booking_uid")
+      .eq("id", metadataBookingId)
+      .limit(1);
+    const rows = (data ?? []) as Booking[];
+    booking = rows[0] ?? null;
   }
 
   for (const identifier of [uid, rescheduleUid]) {
     if (booking || !identifier) continue;
-    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("calcom_booking_uid", identifier).limit(1);
-    booking = data?.[0] ?? null;
+    const { data } = await admin
+      .from("bookings")
+      .select("id,mentor_id,mentee_user_id,status,calcom_booking_uid")
+      .eq("calcom_booking_uid", identifier)
+      .limit(1);
+    const rows = (data ?? []) as Booking[];
+    booking = rows[0] ?? null;
   }
 
   if (!booking && bookingId) {
-    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("calcom_booking_id", bookingId).limit(1);
-    booking = data?.[0] ?? null;
+    const { data } = await admin
+      .from("bookings")
+      .select("id,mentor_id,mentee_user_id,status,calcom_booking_uid")
+      .eq("calcom_booking_id", bookingId)
+      .limit(1);
+    const rows = (data ?? []) as Booking[];
+    booking = rows[0] ?? null;
   }
 
-  // Only use email correlation for creation/request events. A cancellation
-  // webhook for an unknown legacy UID must never cancel a newer booking for
-  // the same mentor/mentee pair.
   if (!booking && ["BOOKING_CREATED", "BOOKING_REQUESTED"].includes(triggerEvent) && attendeeEmail && organizerEmail) {
-    const { data: mentors } = await admin.from("mentors").select("id").eq("email", organizerEmail).limit(2);
-    const { data: mentees } = await admin.from("mentees").select("user_id").eq("email", attendeeEmail).not("user_id", "is", null).limit(2);
+    const { data: mentorData } = await admin.from("mentors").select("id").eq("email", organizerEmail).limit(2);
+    const { data: menteeData } = await admin.from("mentees").select("user_id").eq("email", attendeeEmail).not("user_id", "is", null).limit(2);
+    const mentors = (mentorData ?? []) as MentorLookup[];
+    const mentees = (menteeData ?? []) as MenteeLookup[];
 
-    if (mentors?.length === 1 && mentees?.length === 1 && mentees[0].user_id) {
-      const { data: fallbackMatches } = await admin
+    if (mentors.length === 1 && mentees.length === 1 && mentees[0].user_id) {
+      const { data: fallbackData } = await admin
         .from("bookings")
         .select("id,mentor_id,mentee_user_id,status,calcom_booking_uid")
         .eq("mentor_id", mentors[0].id)
@@ -124,7 +148,8 @@ export async function POST(request: Request) {
         .in("status", ["requested", "confirmed"])
         .order("created_at", { ascending: false })
         .limit(2);
-      if (fallbackMatches?.length === 1) booking = fallbackMatches[0];
+      const fallbackMatches = (fallbackData ?? []) as Booking[];
+      if (fallbackMatches.length === 1) booking = fallbackMatches[0];
     }
   }
 
