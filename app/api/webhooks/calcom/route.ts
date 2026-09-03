@@ -16,7 +16,6 @@ function verifySignature(rawBody: string, signature: string | null, secret: stri
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   const received = signature.replace(/^sha256=/i, "").trim();
   if (!/^[a-f0-9]{64}$/i.test(received)) return false;
-
   const expectedBuffer = Buffer.from(expected, "hex");
   const receivedBuffer = Buffer.from(received, "hex");
   return expectedBuffer.length === receivedBuffer.length && timingSafeEqual(expectedBuffer, receivedBuffer);
@@ -50,8 +49,7 @@ export async function POST(request: Request) {
   }
 
   const rawBody = await request.text();
-  const signature = request.headers.get("x-cal-signature-256");
-  if (!verifySignature(rawBody, signature, secret)) {
+  if (!verifySignature(rawBody, request.headers.get("x-cal-signature-256"), secret)) {
     return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
   }
 
@@ -62,30 +60,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
-  }
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
 
   const record = body as Record<string, unknown>;
   const triggerEvent = asString(record.triggerEvent);
   if (!triggerEvent) return NextResponse.json({ error: "Missing triggerEvent." }, { status: 400 });
+  if (!BOOKING_EVENTS.has(triggerEvent)) return NextResponse.json({ ok: true, ignored: true });
 
-  if (!BOOKING_EVENTS.has(triggerEvent)) {
-    return NextResponse.json({ ok: true, ignored: true });
-  }
-
-  const payload = record.payload && typeof record.payload === "object"
-    ? record.payload as Record<string, unknown>
-    : record;
-
+  const payload = record.payload && typeof record.payload === "object" ? record.payload as Record<string, unknown> : record;
   const uid = asString(payload.uid);
+  const rescheduleUid = asString(payload.rescheduleUid);
   const bookingId = asBookingId(payload.bookingId);
   const startTime = asString(payload.startTime);
   const providerStatus = asString(payload.status);
   const eventType = asString(payload.type);
-  const metadata = payload.metadata && typeof payload.metadata === "object"
-    ? payload.metadata as Record<string, unknown>
-    : {};
+  const metadata = payload.metadata && typeof payload.metadata === "object" ? payload.metadata as Record<string, unknown> : {};
   const metadataBookingId = asString(metadata.aglakadam_booking_id) || asString(metadata.booking_id);
   const attendees = Array.isArray(payload.attendees) ? payload.attendees : [];
   const attendeeEmail = attendees.length && attendees[0] && typeof attendees[0] === "object"
@@ -95,83 +84,63 @@ export async function POST(request: Request) {
     ? asString((payload.organizer as Record<string, unknown>).email)
     : null;
 
-  if (!uid && !bookingId && !metadataBookingId) {
+  if (!uid && !rescheduleUid && !bookingId && !metadataBookingId) {
     return NextResponse.json({ error: "Missing Cal.com booking identifier." }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
-  let query = admin.from("bookings").select("id,mentor_id,mentee_user_id,status");
+  type Booking = { id: string; mentor_id: string; mentee_user_id: string; status: string; calcom_booking_uid: string | null };
+  let booking: Booking | null = null;
 
   if (metadataBookingId) {
-    query = query.eq("id", metadataBookingId);
-  } else if (uid) {
-    query = query.eq("calcom_booking_uid", uid);
-  } else {
-    query = query.eq("calcom_booking_id", bookingId as number);
+    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("id", metadataBookingId).limit(1);
+    booking = data?.[0] ?? null;
   }
 
-  const { data: directMatches, error: lookupError } = await query.limit(2);
-  if (lookupError) {
-    console.error("Cal.com webhook booking lookup failed.");
-    return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
+  for (const identifier of [uid, rescheduleUid]) {
+    if (booking || !identifier) continue;
+    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("calcom_booking_uid", identifier).limit(1);
+    booking = data?.[0] ?? null;
   }
 
-  let booking = directMatches?.[0] ?? null;
+  if (!booking && bookingId) {
+    const { data } = await admin.from("bookings").select("id,mentor_id,mentee_user_id,status,calcom_booking_uid").eq("calcom_booking_id", bookingId).limit(1);
+    booking = data?.[0] ?? null;
+  }
 
-  // Backward-compatible fallback for bookings created by the old UI before
-  // Cal.com identifiers were stored. Match conservatively using the attendee,
-  // mentor organizer, and exact scheduled start time.
-  if (!booking && attendeeEmail && organizerEmail && startTime) {
-    const { data: mentors } = await admin
-      .from("mentors")
-      .select("id")
-      .eq("email", organizerEmail)
-      .limit(2);
+  // Backward-compatible correlation for booking rows created by the existing
+  // manual flow before Cal.com identifiers were stored. The active-booking
+  // uniqueness rule keeps this conservative: exactly one active pair matches.
+  if (!booking && attendeeEmail && organizerEmail) {
+    const { data: mentors } = await admin.from("mentors").select("id").eq("email", organizerEmail).limit(2);
+    const { data: mentees } = await admin.from("mentees").select("user_id").eq("email", attendeeEmail).not("user_id", "is", null).limit(2);
 
-    if (mentors?.length === 1) {
-      const { data: mentees } = await admin
-        .from("mentees")
-        .select("user_id")
-        .eq("email", attendeeEmail)
-        .not("user_id", "is", null)
+    if (mentors?.length === 1 && mentees?.length === 1 && mentees[0].user_id) {
+      const { data: fallbackMatches } = await admin
+        .from("bookings")
+        .select("id,mentor_id,mentee_user_id,status,calcom_booking_uid")
+        .eq("mentor_id", mentors[0].id)
+        .eq("mentee_user_id", mentees[0].user_id)
+        .in("status", ["requested", "confirmed"])
+        .order("created_at", { ascending: false })
         .limit(2);
-
-      if (mentees?.length === 1 && mentees[0].user_id) {
-        const { data: fallbackMatches } = await admin
-          .from("bookings")
-          .select("id,mentor_id,mentee_user_id,status")
-          .eq("mentor_id", mentors[0].id)
-          .eq("mentee_user_id", mentees[0].user_id)
-          .eq("scheduled_for", startTime)
-          .limit(2);
-        booking = fallbackMatches?.[0] ?? null;
-      }
+      if (fallbackMatches?.length === 1) booking = fallbackMatches[0];
     }
   }
 
-  if (!booking) {
-    // A webhook can legitimately arrive before the legacy/manual booking row
-    // exists. Return 200 so Cal.com does not retry forever; future bookings
-    // should use aglakadam_booking_id metadata for deterministic correlation.
-    return NextResponse.json({ ok: true, matched: false });
-  }
+  if (!booking) return NextResponse.json({ ok: true, matched: false });
 
   const nextStatus = getEventStatus(triggerEvent, providerStatus);
   const update: Record<string, unknown> = {
-    calcom_booking_uid: uid,
+    calcom_booking_uid: uid || booking.calcom_booking_uid,
     calcom_booking_id: bookingId,
     calcom_event_type: eventType,
     calcom_status: providerStatus,
     calcom_last_event: triggerEvent,
     calcom_last_event_at: new Date().toISOString(),
   };
-
   if (startTime) update.scheduled_for = startTime;
-
-  // Do not let a cancellation overwrite a locally completed booking.
-  if (!(booking.status === "completed" && nextStatus === "cancelled")) {
-    update.status = nextStatus;
-  }
+  if (!(booking.status === "completed" && nextStatus === "cancelled")) update.status = nextStatus;
 
   const { error: updateError } = await admin.from("bookings").update(update).eq("id", booking.id);
   if (updateError) {
