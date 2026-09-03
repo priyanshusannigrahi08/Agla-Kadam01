@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, ImagePlus, Linkedin, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ImagePlus, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { uploadProfilePhoto } from "@/lib/profilePhoto";
 
@@ -155,7 +155,7 @@ export default function MentorSignup() {
 
             <Field label="LinkedIn profile" htmlFor="linkedin" required hint="Helps us review your professional background.">
               <div className="relative">
-                <Linkedin size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink/30" />
+                <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm bg-board text-[11px] font-bold text-paper">in</span>
                 <input id="linkedin" name="linkedin" type="url" required className="form-input pl-11" placeholder="https://linkedin.com/in/your-name" autoComplete="url" />
               </div>
             </Field>
