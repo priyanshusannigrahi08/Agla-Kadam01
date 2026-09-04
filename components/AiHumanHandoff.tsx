@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -18,9 +18,27 @@ type Mentor = {
   calendly?: string;
   calendly_url?: string;
   photo_url?: string;
+  availability?: string;
   verification_status?: string;
 };
-type Match = { id: string; score: number; reason: string };
+type Match = { id: string; score: number; label?: string; reason: string };
+
+function matchLabel(score: number, label?: string) {
+  if (label) return label;
+  return score >= 80 ? "Strong match" : score >= 60 ? "Good match" : "Possible match";
+}
+
+function fitSignals(mentor: Mentor, context: string) {
+  const contextTokens = new Set(context.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").split(/\s+/).filter((word) => word.length >= 4));
+  const profileText = [mentor.headline, mentor.expertise, mentor.role, mentor.company, mentor.bio].filter(Boolean).join(" ");
+  const profileTokens = new Set(profileText.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").split(/\s+/).filter((word) => word.length >= 4));
+  const overlaps = Array.from(contextTokens).filter((token) => profileTokens.has(token));
+  const signals: string[] = [];
+  if (mentor.expertise) signals.push(mentor.expertise.split(",")[0].trim());
+  if (overlaps.length > 0 && !signals.some((signal) => overlaps.some((token) => signal.toLowerCase().includes(token)))) signals.push(overlaps[0]);
+  if (mentor.verification_status === "verified") signals.push("Verified profile");
+  return signals.filter(Boolean).slice(0, 2);
+}
 
 export default function AiHumanHandoff({ context }: { context: string }) {
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -34,7 +52,7 @@ export default function AiHumanHandoff({ context }: { context: string }) {
       setLoading(true);
       const { data, error } = await supabase
         .from("mentors_public")
-        .select("id,name,headline,bio,expertise,experience,company,role,location,calendly,calendly_url,photo_url,verification_status")
+        .select("id,name,headline,bio,expertise,experience,company,role,location,calendly,calendly_url,photo_url,availability,verification_status")
         .limit(50);
       if (active) {
         if (error) console.error("Mentor handoff load error:", error);
@@ -57,7 +75,7 @@ export default function AiHumanHandoff({ context }: { context: string }) {
         const response = await fetch("/api/ai-mentor/match", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ context: context.slice(0, 6000), mentors }),
+          body: JSON.stringify({ context: context.slice(0, 6000) }),
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data?.error || "Matching failed");
@@ -85,22 +103,25 @@ export default function AiHumanHandoff({ context }: { context: string }) {
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-board/60">AI-powered match</p>
             <h3 className="mt-1 font-display text-xl">Someone who may actually fit your situation</h3>
-            <p className="mt-1 text-sm leading-6 text-ink/60">These recommendations use what you shared with your AI mentor and the experience in each mentor's profile.</p>
+            <p className="mt-1 text-sm leading-6 text-ink/60">Recommendations consider the situation you shared and each mentor’s profile. Use the profile to verify the fit before booking.</p>
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {recommendations.map(({ mentor, score, reason }) => {
+          {recommendations.map(({ mentor, score, label, reason }) => {
             const booking = mentor.calendly || mentor.calendly_url;
+            const signals = fitSignals(mentor, context);
             return (
               <article key={mentor.id} className="rounded-sm border border-ink/10 bg-white p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 overflow-hidden rounded-full bg-board/10">
                     {mentor.photo_url ? <img src={mentor.photo_url} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-display">{mentor.name?.charAt(0) || "M"}</span>}
                   </div>
-                  <div className="min-w-0"><h4 className="truncate text-sm font-semibold">{mentor.name}</h4><p className="truncate text-[11px] text-ink/45">{mentor.role || mentor.headline || "Mentor"}</p></div>
+                  <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><h4 className="truncate text-sm font-semibold">{mentor.name}</h4>{mentor.verification_status === "verified" && <CheckCircle2 size={13} className="shrink-0 text-board" aria-label="Verified mentor" />}</div><p className="truncate text-[11px] text-ink/45">{mentor.role || mentor.headline || "Mentor"}</p></div>
                 </div>
-                <div className="mt-3"><span className="rounded-full bg-board/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-board">{score}% match</span></div>
-                <p className="mt-3 line-clamp-3 text-xs leading-5 text-ink/60">{reason}</p>
+                <div className="mt-3 flex items-center gap-2"><span className="rounded-full bg-board/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-board">{matchLabel(score, label)}</span><span className="text-[10px] text-ink/35">AI estimate</span></div>
+                {signals.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{signals.map((signal) => <span key={signal} className="rounded-full border border-ink/10 bg-paper px-2 py-1 text-[10px] text-ink/55">{signal}</span>)}</div>}
+                <p className="mt-3 text-xs leading-5 text-ink/60">{reason}</p>
+                {mentor.availability && <p className="mt-2 text-[10px] text-ink/40">Usually available: {mentor.availability}</p>}
                 <div className="mt-4 flex gap-2">
                   <Link href={`/mentors/${mentor.id}`} className="flex-1 rounded-sm border border-ink/12 px-3 py-2 text-center text-[11px] font-semibold hover:bg-paper">View profile</Link>
                   {booking ? <Link href={`/book/${mentor.id}`} className="inline-flex items-center justify-center rounded-sm bg-amber px-3 py-2" aria-label={`Book a call with ${mentor.name}`}><CalendarDays size={13} /></Link> : <Link href={`/mentors/${mentor.id}`} className="inline-flex items-center justify-center rounded-sm bg-amber px-3 py-2" aria-label={`View ${mentor.name}`}><ArrowRight size={13} /></Link>}
@@ -109,7 +130,7 @@ export default function AiHumanHandoff({ context }: { context: string }) {
             );
           })}
         </div>
-        <div className="mt-4 flex justify-end"><Link href={`/mentors?q=${encodeURIComponent(context.slice(0, 80))}`} className="inline-flex items-center gap-1 text-xs font-semibold text-board hover:underline">Browse all human mentors <ArrowRight size={13} /></Link></div>
+        <div className="mt-4 flex justify-between gap-4 border-t border-ink/10 pt-4"><p className="text-[10px] leading-4 text-ink/40">Match labels are recommendations, not guarantees.</p><Link href={`/mentors?q=${encodeURIComponent(context.slice(0, 80))}`} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-board hover:underline">Browse all human mentors <ArrowRight size={13} /></Link></div>
       </div>
     </div>
   );
