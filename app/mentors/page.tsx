@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { ArrowRight, CheckCircle2, Search, ShieldCheck, SlidersHorizontal, Star, Users, X } from "lucide-react";
 import { virtualMentors } from "@/app/data/virtualMentors";
+import { mentorSearchScore, rankMentors } from "@/lib/mentorSearch";
 
 type Mentor = {
   id: string;
@@ -99,7 +100,6 @@ function MentorsPage() {
 
   const filteredHumanMentors = useMemo(() => {
     const result = mentors.filter((mentor) => {
-      const haystack = [mentor.name, mentor.headline, mentor.bio, mentor.expertise, mentor.experience, mentor.company, mentor.role, mentor.location].filter(Boolean).join(" ").toLowerCase();
       const exp = years(mentor.experience || "");
       const matchesExperience =
         experienceFilter === "all" ||
@@ -107,10 +107,16 @@ function MentorsPage() {
         (experienceFilter === "mid" && exp >= 6 && exp <= 10) ||
         (experienceFilter === "senior" && (exp >= 11 || /(senior|lead|director|head|founder)/i.test(mentor.experience || "")));
       const matchesField = field === "all" || (mentor.expertise || "").split(",").map((item) => item.trim().toLowerCase()).includes(field.toLowerCase());
-      return (!query || haystack.includes(query)) && matchesField && matchesExperience;
+      return matchesField && matchesExperience;
     });
 
+    if (query) {
+      const ranked = rankMentors(query, result);
+      if (sort === "relevance" || sort === "newest") return ranked;
+    }
+
     return result.sort((a, b) => {
+      if (sort === "relevance") return mentorSearchScore(query, b) - mentorSearchScore(query, a);
       if (sort === "rating") {
         return (ratingMap[b.id]?.total / (ratingMap[b.id]?.count || 1) || 0) - (ratingMap[a.id]?.total / (ratingMap[a.id]?.count || 1) || 0);
       }
@@ -162,12 +168,12 @@ function MentorsPage() {
             <label className="flex items-center gap-2 text-sm"><span className="text-ink/50">Field</span><select value={field} onChange={(event) => setField(event.target.value)} className="rounded-sm border border-ink/15 bg-white px-3 py-2.5"><option value="all">All fields</option>{fields.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
             <label className="flex items-center gap-2 text-sm"><span className="text-ink/50">Experience</span><select value={experienceFilter} onChange={(event) => setExperienceFilter(event.target.value)} className="rounded-sm border border-ink/15 bg-white px-3 py-2.5"><option value="all">Any level</option><option value="early">0–5 years</option><option value="mid">6–10 years</option><option value="senior">11+ years / senior</option></select></label>
           </div>
-          <label className="ml-auto flex items-center gap-2 text-sm"><span className="text-ink/50">Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="rounded-sm border border-ink/15 bg-white px-3 py-2.5"><option value="newest">Newest</option><option value="rating">Highest rated</option><option value="experience">Most experienced</option></select></label>
+          <label className="ml-auto flex items-center gap-2 text-sm"><span className="text-ink/50">Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="rounded-sm border border-ink/15 bg-white px-3 py-2.5"><option value="relevance">Relevance</option><option value="newest">Newest</option><option value="rating">Highest rated</option><option value="experience">Most experienced</option></select></label>
           {activeFilters && <button type="button" onClick={clearFilters} className="text-sm font-semibold text-board hover:underline">Clear filters</button>}
         </div>
       </div>
 
-      {query && <div className="mx-auto max-w-7xl px-4 pt-6 text-sm text-ink/55 sm:px-6">Results for <span className="font-semibold text-ink">“{search.trim()}”</span></div>}
+      {query && <div className="mx-auto max-w-7xl px-4 pt-6 text-sm text-ink/55 sm:px-6">Results for <span className="font-semibold text-ink">“{search.trim()}”</span><span className="ml-2 text-ink/40">ranked by relevance</span></div>}
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
         {filteredVirtualMentors.length > 0 && (
