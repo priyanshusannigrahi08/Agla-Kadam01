@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ExternalLink, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, ShieldCheck, Star } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 type Mentor = { id: string; name: string; headline?: string; calendly?: string; calendly_url?: string; availability?: string; verification_status?: string };
