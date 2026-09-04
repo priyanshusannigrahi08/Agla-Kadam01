@@ -49,7 +49,7 @@ function MentorsPage() {
   const [search, setSearch] = useState(initialQuery);
   const [field, setField] = useState("all");
   const [experienceFilter, setExperienceFilter] = useState("all");
-  const [sort, setSort] = useState("newest");
+  const [sort, setSort] = useState("relevance");
   const [mobileFilters, setMobileFilters] = useState(false);
   const [error, setError] = useState("");
 
@@ -110,10 +110,7 @@ function MentorsPage() {
       return matchesField && matchesExperience;
     });
 
-    if (query) {
-      const ranked = rankMentors(query, result);
-      if (sort === "relevance" || sort === "newest") return ranked;
-    }
+    if (query && sort === "relevance") return rankMentors(query, result);
 
     return result.sort((a, b) => {
       if (sort === "relevance") return mentorSearchScore(query, b) - mentorSearchScore(query, a);
@@ -129,7 +126,7 @@ function MentorsPage() {
   const clearFilters = () => {
     setField("all");
     setExperienceFilter("all");
-    setSort("newest");
+    setSort("relevance");
   };
 
   return (
