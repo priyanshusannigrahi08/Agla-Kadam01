@@ -1,48 +1,214 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, ExternalLink, LogOut, MessageCircle, ShieldCheck, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
-type Booking = { id: string; mentor_id: string; scheduled_for: string | null; status: string; created_at: string; booking_url: string | null };
-type Mentor = { id: string; name: string; status: string; verification_status: string; expertise: string; experience: string | null };
-type Mentee = { id: string; name: string; situation: string; stuck_on: string; status: string; matched_mentor_id: string | null };
-const statusLabel: Record<string, string> = { requested: "Booking recorded", confirmed: "Confirmed", completed: "Completed", cancelled: "Cancelled" };
+type Row = Record<string, unknown>;
+
+// Fields we never want to print out raw in the generic list below —
+// either because they're internal, or shown separately (photo).
+const HIDDEN_KEYS = new Set(["id", "user_id", "photo_url", "email"]);
+
+function labelFor(key: string) {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function ProfileCard({
+  title,
+  row,
+  statusBadge,
+}: {
+  title: string;
+  row: Row;
+  statusBadge?: { label: string; positive: boolean };
+}) {
+  const photoUrl = typeof row.photo_url === "string" ? row.photo_url : null;
+  const name = typeof row.name === "string" ? row.name : "";
+  const entries = Object.entries(row).filter(
+    ([key, value]) => !HIDDEN_KEYS.has(key) && value !== null && value !== ""
+  );
+
+  return (
+    <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-4">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={`${name}'s profile`}
+              className="h-14 w-14 rounded-full object-cover border border-ink/10"
+            />
+          ) : (
+            <div className="h-14 w-14 rounded-full bg-board/10 border border-board/10 flex items-center justify-center font-display text-xl text-board">
+              {name?.charAt(0).toUpperCase() || "?"}
+            </div>
+          )}
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-board/60">
+              {title}
+            </p>
+            {name && <h2 className="font-display text-xl">{name}</h2>}
+          </div>
+        </div>
+
+        {statusBadge && (
+          <span
+            className={`font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1.5 rounded-full ${
+              statusBadge.positive
+                ? "bg-board/10 text-board"
+                : "bg-amber/20 text-amber"
+            }`}
+          >
+            {statusBadge.label}
+          </span>
+        )}
+      </div>
+
+      <dl className="space-y-3">
+        {entries.map(([key, value]) => (
+          <div key={key}>
+            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink/40">
+              {labelFor(key)}
+            </dt>
+            <dd className="font-body text-sm text-ink/80 mt-0.5">{formatValue(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [mentors, setMentors] = useState<Record<string, { name: string; headline: string | null; expertise: string | null; verification_status: string; availability: string | null }>>({});
-  const [mentor, setMentor] = useState<Mentor | null>(null);
-  const [mentee, setMentee] = useState<Mentee | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
+  const [menteeRow, setMenteeRow] = useState<Row | null>(null);
+  const [mentorRow, setMentorRow] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { async function load() { const { data: { user } } = await supabase.auth.getUser(); if (!user) { window.location.replace("/auth?next=/dashboard"); return; } setUser(user); const [{ data: bookingData }, { data: mentorData }, { data: menteeData }] = await Promise.all([supabase.from("bookings").select("id,mentor_id,scheduled_for,status,created_at,booking_url").order("created_at", { ascending: false }), supabase.from("mentors").select("id,name,status,verification_status,expertise,experience").eq("user_id", user.id).maybeSingle(), supabase.from("mentees").select("id,name,situation,stuck_on,status,matched_mentor_id").eq("user_id", user.id).maybeSingle()]); const ids = [...new Set((bookingData || []).map((b) => b.mentor_id))]; const { data: publicMentors } = ids.length ? await supabase.from("mentors_public").select("id,name,headline,expertise,verification_status,availability").in("id", ids) : { data: [] as { id: string; name: string; headline: string | null; expertise: string | null; verification_status: string; availability: string | null }[] }; setBookings((bookingData || []) as Booking[]); setMentors(Object.fromEntries((publicMentors || []).map((m) => [m.id, { name: m.name, headline: m.headline, expertise: m.expertise, verification_status: m.verification_status, availability: m.availability }]))); setMentor((mentorData || null) as Mentor | null); setMentee((menteeData || null) as Mentee | null); setLoading(false); } load(); }, []);
-  async function signOut() { await supabase.auth.signOut(); window.location.replace("/"); }
-  const activeBookings = useMemo(() => bookings.filter((b) => !["cancelled", "completed"].includes(b.status)), [bookings]);
-  const completedBookings = useMemo(() => bookings.filter((b) => b.status === "completed"), [bookings]);
-  const nextBooking = useMemo(() => activeBookings.find((b) => b.scheduled_for && new Date(b.scheduled_for).getTime() >= Date.now()) || activeBookings[0] || null, [activeBookings]);
-  function formatDate(value: string | null) { if (!value) return null; const date = new Date(value); return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date); }
-  if (loading) return <main className="min-h-screen bg-paper px-6 py-24 text-center text-ink/60">Loading your dashboard…</main>;
+  useEffect(() => {
+    async function load() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  const nextMentor = nextBooking ? mentors[nextBooking.mentor_id] : null;
+      if (!user) {
+        setSignedIn(false);
+        setCheckingAuth(false);
+        setLoading(false);
+        return;
+      }
 
-  return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-    <header className="flex flex-col gap-5 border-b border-ink/10 pb-7 sm:flex-row sm:items-end sm:justify-between"><div><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">YOUR SPACE</p><h1 className="mt-2 font-display text-3xl sm:text-4xl">Welcome back.</h1><p className="mt-2 text-sm text-ink/55">{user?.email}</p></div><button type="button" onClick={signOut} className="inline-flex w-fit items-center gap-2 border border-ink/20 px-4 py-2.5 text-sm hover:bg-white"><LogOut size={15}/> Sign out</button></header>
+      setSignedIn(true);
+      setCheckingAuth(false);
 
-    {nextBooking && <section className="mt-6 rounded-sm border border-board/15 bg-board p-6 text-chalk pin-shadow sm:p-7"><div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-chalk/50">NEXT CONVERSATION</p><h2 className="mt-2 font-display text-2xl sm:text-3xl">{nextMentor?.name || "Your mentor"}</h2><p className="mt-1 text-sm text-chalk/65">{nextMentor?.headline || "30-minute mentor conversation"}</p>{nextBooking.scheduled_for ? <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium"><CalendarDays size={15}/> {formatDate(nextBooking.scheduled_for)}</p> : <p className="mt-4 inline-flex items-center gap-2 text-sm text-chalk/65"><Clock3 size={15}/> Choose a time on the booking calendar</p>}</div><div className="flex flex-wrap gap-2"><span className="inline-flex items-center gap-2 rounded-full bg-chalk/10 px-3 py-1.5 text-xs"><CheckCircle2 size={13}/> {statusLabel[nextBooking.status] || nextBooking.status}</span>{nextBooking.booking_url && <a href={nextBooking.booking_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold text-ink"><CalendarDays size={14}/> Open calendar</a>}</div></div></section>}
+      const [menteeResult, mentorResult] = await Promise.all([
+        supabase.from("mentees").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("mentors").select("*").eq("user_id", user.id).maybeSingle(),
+      ]);
 
-    <section className="mt-6 grid gap-4 sm:grid-cols-3"><div className="rounded-sm border border-ink/10 bg-white p-5"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">Active conversations</p><p className="mt-2 font-display text-3xl">{activeBookings.length}</p></div><div className="rounded-sm border border-ink/10 bg-white p-5"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">Completed</p><p className="mt-2 font-display text-3xl">{completedBookings.length}</p></div><div className="rounded-sm border border-ink/10 bg-white p-5"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">Profile</p><p className="mt-2 font-display text-xl">{mentor ? "Mentor" : mentee ? "Mentee" : "Not set up"}</p></div></section>
+      setMenteeRow(menteeResult.data ?? null);
+      setMentorRow(mentorResult.data ?? null);
+      setLoading(false);
+    }
 
-    <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_330px] lg:items-start">
-      <section className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7"><div className="flex items-center justify-between gap-4"><div><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">CONVERSATIONS</p><h2 className="mt-2 font-display text-2xl">Your calls</h2></div><CalendarDays size={21} className="text-board"/></div>{bookings.length === 0 ? <div className="mt-7 rounded-sm border border-dashed border-ink/15 bg-paper p-7 text-center"><Clock3 size={26} className="mx-auto text-board/60"/><p className="mt-3 font-semibold">No conversations yet.</p><p className="mt-1 text-sm text-ink/55">Find someone who can help you take the next step.</p><Link href="/find-mentor" className="mt-5 inline-flex items-center gap-2 rounded-sm bg-amber px-5 py-2.5 text-sm font-semibold">Find a mentor <ArrowRight size={15}/></Link></div> : <div className="mt-6 space-y-3">{bookings.map((booking) => { const scheduled = formatDate(booking.scheduled_for); const bookedMentor = mentors[booking.mentor_id]; const reviewHref = `/review?mentor=${encodeURIComponent(booking.mentor_id)}&name=${encodeURIComponent(bookedMentor?.name || "this mentor")}`; return <article key={booking.id} className="rounded-sm border border-ink/10 bg-paper p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{bookedMentor?.name || "Your mentor"}</p>{bookedMentor?.verification_status === "verified" && <span className="inline-flex items-center gap-1 rounded-full bg-board/10 px-2 py-1 text-[10px] font-medium text-board"><ShieldCheck size={11}/> Verified</span>}</div><p className="mt-1 text-sm text-ink/55">{bookedMentor?.headline || "30-minute mentor conversation"}</p><p className="mt-1 text-xs text-ink/45">Recorded {new Date(booking.created_at).toLocaleDateString()}</p></div><span className="w-fit rounded-full bg-board/10 px-2.5 py-1 text-xs font-medium text-board">{statusLabel[booking.status] || booking.status}</span></div>{bookedMentor?.expertise && <p className="mt-4 text-sm leading-6 text-ink/65"><span className="font-medium text-ink">Focus:</span> {bookedMentor.expertise}</p>}{bookedMentor?.availability && <p className="mt-2 text-xs text-ink/50"><span className="font-medium text-ink/70">Typical availability:</span> {bookedMentor.availability}</p>}{scheduled ? <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium"><CalendarDays size={15} className="text-board"/> {scheduled}</p> : <p className="mt-4 text-xs leading-relaxed text-ink/50">Appointment time is managed by the external booking service.</p>}{booking.booking_url && <a href={booking.booking_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-board hover:underline"><ExternalLink size={14}/> Open booking calendar</a>}{booking.status === "completed" && <Link href={reviewHref} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-board hover:underline"><CheckCircle2 size={14}/> Leave a review <ArrowRight size={13}/></Link>}</article>; })}</div>}</section>
+    load();
+  }, []);
 
-      <aside className="space-y-6"><section className="rounded-sm border border-ink/10 bg-white p-6"><div className="flex items-center gap-3"><UserRound size={20} className="text-board"/><h2 className="font-display text-xl">Your profile</h2></div>{mentor ? <><p className="mt-5 font-semibold">{mentor.name}</p><p className="mt-1 text-sm text-ink/55">Mentor · {mentor.status}</p><p className="mt-3 text-sm leading-6 text-ink/65">{mentor.expertise}</p><div className="mt-4 inline-flex items-center gap-2 rounded-full bg-board/10 px-3 py-1.5 text-xs text-board"><ShieldCheck size={13}/>{mentor.verification_status === "verified" ? "Verified mentor" : "Verification pending"}</div></> : mentee ? <><p className="mt-5 font-semibold">{mentee.name}</p><p className="mt-1 text-sm text-ink/55">Mentee · {mentee.status}</p><p className="mt-3 text-sm leading-6 text-ink/65">{mentee.situation}</p><p className="mt-2 text-sm leading-6 text-ink/55">{mentee.stuck_on}</p></> : <><p className="mt-5 text-sm leading-6 text-ink/55">Complete a profile so AglaKadam can personalize your experience.</p><Link href="/onboarding" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-board">Set up profile <ArrowRight size={14}/></Link></>}</section>
+  if (checkingAuth || loading) {
+    return (
+      <main className="min-h-screen bg-paper flex items-center justify-center">
+        <p className="font-mono text-sm text-ink/50">Loading…</p>
+      </main>
+    );
+  }
 
-      {nextBooking && <section className="rounded-sm border border-ink/10 bg-white p-6"><div className="flex items-center gap-3"><MessageCircle size={19} className="text-board"/><h2 className="font-display text-xl">Make the call count</h2></div><p className="mt-3 text-sm leading-6 text-ink/60">Bring one specific question, a little context, and what you have already tried. Thirty minutes goes quickly.</p><div className="mt-4 rounded-sm bg-paper p-4"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/40">Before you join</p><ul className="mt-2 space-y-2 text-sm text-ink/65"><li>• Write down your main question.</li><li>• Keep any useful context or examples nearby.</li><li>• Decide what a useful next step would look like.</li></ul></div></section>}
+  if (!signedIn) {
+    return (
+      <main className="min-h-screen bg-paper flex items-center justify-center px-6">
+        <div className="bg-white border border-ink/10 rounded-sm p-8 pin-shadow text-center max-w-sm">
+          <p className="font-body text-ink/70 mb-5">Sign in to see your submissions.</p>
+          <Link
+            href="/auth"
+            className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold px-6 py-3 hover:brightness-95 transition"
+          >
+            Sign in
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
-      <section className="rounded-sm border border-ink/10 bg-board p-6 text-chalk"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-chalk/50">NEXT STEP</p><h2 className="mt-2 font-display text-2xl">Keep moving.</h2><p className="mt-2 text-sm leading-6 text-chalk/70">{completedBookings.length ? "One conversation can become a useful next step. Keep exploring when you are ready." : "A good conversation starts with one honest question."}</p><div className="mt-5 flex flex-col gap-2">{!mentor && <Link href="/find-mentor" className="inline-flex items-center justify-center gap-2 rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold text-ink">Find my mentor <ArrowRight size={14}/></Link>}<Link href="/mentors" className="inline-flex items-center justify-center rounded-sm border border-chalk/20 px-4 py-2.5 text-sm hover:bg-chalk/10">Browse mentors</Link></div></section></aside>
-    </div>
-  </div></main>;
+  const hasNothing = !menteeRow && !mentorRow;
+
+  return (
+    <main className="min-h-screen bg-paper text-ink">
+      <div className="mx-auto max-w-2xl px-6 py-16 sm:py-24">
+        <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">
+          ← Back to AglaKadam
+        </Link>
+
+        <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">Your submissions</h1>
+        <p className="text-ink/70 mb-10">
+          Whatever you've submitted to AglaKadam, in one place.
+        </p>
+
+        {hasNothing && (
+          <div className="bg-white rounded-sm border border-ink/10 p-8 pin-shadow text-center">
+            <p className="font-body text-ink/70 mb-5">
+              You haven't submitted anything yet.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link
+                href="/mentee"
+                className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
+              >
+                Find a mentor
+              </Link>
+              <Link
+                href="/mentor"
+                className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
+              >
+                Offer to mentor
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {menteeRow && (
+            <ProfileCard
+              title="Mentee profile"
+              row={menteeRow}
+              statusBadge={
+                menteeRow.is_active === false
+                  ? { label: "Inactive", positive: false }
+                  : { label: "Active", positive: true }
+              }
+            />
+          )}
+
+          {mentorRow && (
+            <ProfileCard
+              title="Mentor profile"
+              row={mentorRow}
+              statusBadge={
+                mentorRow.is_approved
+                  ? { label: "Approved", positive: true }
+                  : { label: "Pending review", positive: false }
+              }
+            />
+          )}
+        </div>
+      </div>
+    </main>
+  );
 }
