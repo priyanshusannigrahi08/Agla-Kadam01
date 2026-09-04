@@ -22,6 +22,7 @@ type Mentor = {
   calendly?: string;
   calendly_url?: string;
   photo_url?: string;
+  availability?: string;
   created_at?: string;
   verification_status?: string;
 };
@@ -209,6 +210,7 @@ function MentorsPage() {
               const initial = mentor.name?.trim().charAt(0).toUpperCase() || "M";
               const tags = (mentor.expertise || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 4);
               const booking = mentor.calendly || mentor.calendly_url;
+              const availability = mentor.availability?.trim();
               return (
                 <article key={mentor.id} className="group flex flex-col rounded-sm border border-ink/10 bg-white p-6 shadow-[0_10px_30px_-24px_rgba(23,34,28,0.8)] transition duration-200 hover:-translate-y-1 hover:border-ink/20 hover:shadow-[0_18px_36px_-24px_rgba(23,34,28,0.55)]">
                   <div className="flex items-start gap-4">
@@ -224,9 +226,10 @@ function MentorsPage() {
                   </div>
                   {tags.length > 0 && <div className="mt-5 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-board/7 px-3 py-1 text-xs text-board">{tag}</span>)}</div>}
                   <div className="mt-5 grid grid-cols-2 gap-3 rounded-sm bg-paper p-3 text-xs"><div><p className="text-ink/40">Experience</p><p className="mt-1 font-medium text-ink/75">{mentor.experience || "Not listed"}</p></div><div><p className="text-ink/40">Location</p><p className="mt-1 truncate font-medium text-ink/75">{mentor.location || "Open to connect"}</p></div></div>
+                  <div className="mt-3 rounded-sm border border-ink/8 bg-white px-3 py-2.5 text-xs"><p className="text-ink/40">Availability</p><p className="mt-1 flex items-center gap-1.5 font-medium text-ink/70"><span className={`h-1.5 w-1.5 rounded-full ${booking ? "bg-board" : "bg-ink/25"}`} />{availability || (booking ? "See live slots on calendar" : "Not listed")}</p></div>
                   <p className="mt-4 line-clamp-3 flex-1 text-sm leading-relaxed text-ink/65">{mentor.bio || "Experience and practical guidance for your next step."}</p>
-                  <div className="mt-6 flex flex-col gap-2 sm:flex-row"><Link href={`/mentors/${mentor.id}`} className="inline-flex flex-1 items-center justify-center rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold">View profile</Link>{booking && <Link href={`/book/${mentor.id}`} className="inline-flex flex-1 items-center justify-center rounded-sm border border-ink/15 px-4 py-2.5 text-sm font-semibold hover:bg-ink/5">Book a call</Link>}</div>
-                  <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-ink/40"><CheckCircle2 size={13} /> Review profiles before booking</p>
+                  <div className="mt-6 flex flex-col gap-2 sm:flex-row"><Link href={`/mentors/${mentor.id}`} className="inline-flex flex-1 items-center justify-center rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold">View profile</Link>{booking && <Link href={`/book/${mentor.id}`} className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm border border-ink/15 px-4 py-2.5 text-sm font-semibold hover:bg-ink/5">Check availability <ArrowRight size={14} /></Link>}</div>
+                  <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-ink/40"><CheckCircle2 size={13} /> Published reviews help you compare experiences</p>
                 </article>
               );
             })}
