@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 
 type MentorProfile = { id: string; name: string; headline?: string; bio?: string; expertise?: string; experience?: string; company?: string; role?: string; location?: string; photo_url?: string; availability?: string; verification_status?: string; rating?: number; review_count?: number };
 type Match = { id: string; score: number; label: string; reason: string };
+type PublishedReview = { mentor_id?: unknown; rating?: unknown };
 const GEMINI_MODEL = "gemini-3.7-flash";
 const MAX_CONTEXT = 6000, MAX_MENTORS = 50, MAX_BODY_BYTES = 100_000, RATE_LIMIT_WINDOW_MS = 60_000, RATE_LIMIT_MAX = 20;
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
     if (error) { console.error("Mentor pool load error:", error); return NextResponse.json({ error: "Mentor matching is temporarily unavailable." }, { status: 503 }); }
     if (reviewError) console.error("Mentor review load error:", reviewError);
     const ratings: Record<string, { total: number; count: number }> = {};
-    (reviewData || []).forEach((review) => { const id = String(review.mentor_id || ""); const rating = Number(review.rating); if (!id || !Number.isFinite(rating)) return; if (!ratings[id]) ratings[id] = { total: 0, count: 0 }; ratings[id].total += rating; ratings[id].count += 1; });
+    const publishedReviews = (reviewData || []) as PublishedReview[];
+    publishedReviews.forEach((review) => { const id = String(review.mentor_id || ""); const rating = Number(review.rating); if (!id || !Number.isFinite(rating)) return; if (!ratings[id]) ratings[id] = { total: 0, count: 0 }; ratings[id].total += rating; ratings[id].count += 1; });
     const mentors = cleanMentors(data, ratings); if (!mentors.length) return NextResponse.json({ matches: [], mentors: [], empty: true });
     const fullContext = [`Situation: ${context}`, area ? `Area: ${area}` : "", goal ? `Goal: ${goal}` : "", stage ? `Career stage: ${stage}` : ""].filter(Boolean).join("\n");
     const fallback = fallbackMatches(fullContext, mentors);
