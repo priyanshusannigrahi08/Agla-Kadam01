@@ -32,6 +32,8 @@ function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
+type AdminUpdate = Record<string, string>;
+
 export async function GET(request: NextRequest) {
   const user = await getAdminUser(request);
   if (!user) return jsonError("Admin access required.", 403);
@@ -75,26 +77,26 @@ export async function PATCH(request: NextRequest) {
   const admin = getSupabaseAdmin();
 
   if (resource === "mentor") {
-    if (!['pending', 'approved', 'paused'].includes(status)) return jsonError("Invalid mentor status.", 400);
+    if (!["pending", "approved", "paused"].includes(status)) return jsonError("Invalid mentor status.", 400);
     const verification = typeof body.verification_status === "string" ? body.verification_status : undefined;
-    if (verification !== undefined && !['pending', 'verified', 'unverified'].includes(verification)) return jsonError("Invalid verification status.", 400);
-    const update: Record<string, string> = { status };
+    if (verification !== undefined && !["pending", "verified", "unverified"].includes(verification)) return jsonError("Invalid verification status.", 400);
+    const update: AdminUpdate = { status };
     if (verification !== undefined) update.verification_status = verification;
-    const { error } = await admin.from("mentors").update(update).eq("id", id);
+    const { error } = await admin.from("mentors").update(update as never).eq("id", id);
     if (error) return jsonError("Couldn't update mentor.", 500);
     return NextResponse.json({ ok: true });
   }
 
   if (resource === "review") {
-    if (!['pending', 'published', 'rejected'].includes(status)) return jsonError("Invalid review status.", 400);
-    const { error } = await admin.from("reviews").update({ status }).eq("id", id);
+    if (!["pending", "published", "rejected"].includes(status)) return jsonError("Invalid review status.", 400);
+    const { error } = await admin.from("reviews").update({ status } as never).eq("id", id);
     if (error) return jsonError("Couldn't update review.", 500);
     return NextResponse.json({ ok: true });
   }
 
   if (resource === "booking") {
-    if (!['requested', 'confirmed', 'cancelled', 'completed'].includes(status)) return jsonError("Invalid booking status.", 400);
-    const { error } = await admin.from("bookings").update({ status }).eq("id", id);
+    if (!["requested", "confirmed", "cancelled", "completed"].includes(status)) return jsonError("Invalid booking status.", 400);
+    const { error } = await admin.from("bookings").update({ status } as never).eq("id", id);
     if (error) return jsonError("Couldn't update booking.", 500);
     return NextResponse.json({ ok: true });
   }
