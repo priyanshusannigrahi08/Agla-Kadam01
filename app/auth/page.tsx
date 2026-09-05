@@ -7,8 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 
 function AuthForm() {
   const searchParams = useSearchParams();
-  const requestedNext = searchParams.get("next") || "/dashboard";
-  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/dashboard";
+  const requestedNext = searchParams.get("next") || "/profile-setup";
+  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/profile-setup";
   const [mode, setMode] = useState<"email" | "phone">("email");
   const [value, setValue] = useState("");
   const [otp, setOtp] = useState("");
@@ -60,7 +60,7 @@ function AuthForm() {
       <div className="w-full max-w-md bg-white border border-ink/10 shadow-sm p-7 sm:p-10">
         <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">← Back to AglaKadam</Link>
         <h1 className="font-display text-3xl mt-6">Welcome.</h1>
-        <p className="text-ink/65 mt-2 mb-7">Sign in with Google, email OTP, or a phone verification code.</p>
+        <p className="text-ink/65 mt-2 mb-7">Sign in with Google, email OTP, or a phone verification code. New accounts will complete a short basic profile first.</p>
         {!sent ? <>
           <button type="button" onClick={google} disabled={loading} className="w-full border border-ink/20 py-3 font-semibold hover:bg-paper disabled:opacity-60">{loading ? "Connecting to Google…" : "Continue with Google"}</button>
           <div className="flex gap-2 mt-6 mb-4 text-sm">
