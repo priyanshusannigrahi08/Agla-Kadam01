@@ -20,6 +20,7 @@ and career switchers — to find a mentor, explore their experience, and book a
 - ChatGPT-style left history sidebar and conversation search
 - Mentor and mentee profile forms with profile photos
 - Cal.com webhook synchronization for booking status and scheduled time
+- Private admin workspace at `/admin` for marketplace operations
 
 The mentor directory only exposes mentors whose Supabase `status` is
 `approved`. Reviews are submitted as `pending` and should be published only
@@ -40,7 +41,7 @@ git clone https://github.com/priyanshusannigrahi08/Agla-Kadam01.git
 cd Agla-Kadam01
 npm install
 cp .env.example .env.local
-# Fill in the Supabase, Gemini and Cal.com values in .env.local.
+# Fill in the Supabase, Gemini, Cal.com and admin values in .env.local.
 npm run dev
 ```
 
@@ -54,11 +55,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 GEMINI_API_KEY=your_gemini_api_key
 CALCOM_WEBHOOK_SECRET=your_calcom_webhook_secret
+ADMIN_EMAILS=your-admin-email@example.com
 ```
 
-`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `CALCOM_WEBHOOK_SECRET` are
-server-side secrets. Never expose them as `NEXT_PUBLIC_` variables or commit
-real values to the repository.
+`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CALCOM_WEBHOOK_SECRET`, and
+`ADMIN_EMAILS` are server-side configuration. Never expose secrets as
+`NEXT_PUBLIC_` variables or commit real values to the repository.
+
+`ADMIN_EMAILS` is a comma-separated allowlist of Supabase-authenticated email
+addresses that may access `/admin` and use its protected mentor, review and
+booking operations. Keep this list limited to trusted administrators.
 
 ## Supabase setup
 
@@ -85,15 +91,15 @@ Run the SQL scripts in this order in the Supabase SQL Editor:
 trigger keeps it synchronized with approved mentors while keeping private
 mentor fields out of the public Data API.
 
-To publish a mentor, change their `mentors.status` from `pending` to
-`approved` in the Supabase Table Editor.
+To publish a mentor, an authorized admin can use `/admin` or change their
+`mentors.status` from `pending` to `approved` in the Supabase Table Editor.
 
 ### AI conversation history
 
 Signed-in users can open an AI mentor and have each conversation saved to
 `ai_conversations`. The AI mentor screen provides a persistent left-hand
 sidebar with all of the user's AI chats, a search box, new-chat control and
-delete actions. `/ai-history` provides the full history view.
+ delete actions. `/ai-history` provides the full history view.
 
 Row-level security ensures a user can only read, create, update or delete
 their own conversations. The older browser-local history format is migrated
@@ -138,6 +144,27 @@ be `pending` on insertion, and must have a recorded completed booking for that
 mentor. Published reviews are publicly readable, while browser clients cannot
 update or delete reviews or booking records.
 
+## Admin workspace
+
+Set `ADMIN_EMAILS` in Vercel to the exact email address used by the authorized
+Supabase account. Multiple administrators can be separated with commas.
+
+After deployment, open `/admin`. Unauthenticated users are redirected to the
+auth flow, while authenticated users not present in `ADMIN_EMAILS` receive an
+access-denied response.
+
+The admin workspace provides:
+
+- Overview metrics and a moderation queue
+- Mentor approval, pausing and verification
+- Review publishing/rejection
+- Booking confirmation, completion and cancellation
+- Links to approved public mentor profiles
+
+The admin API validates the Supabase access token server-side and performs
+protected mutations through the server-side Supabase client. The service-role
+key is never sent to the browser.
+
 ## Deployment
 
 Connect this repo to Vercel and add the same environment variables in
@@ -158,6 +185,8 @@ app/
   book/[id]/page.tsx
   review/page.tsx
   dashboard/page.tsx
+  admin/page.tsx
+  api/admin/route.ts
   ai-mentor/[id]/page.tsx
   ai-history/page.tsx
   api/ai-mentor/chat/route.ts
@@ -178,27 +207,3 @@ supabase/
   calcom_integration.sql
   ai_conversations.sql
 ```
-
-## Roadmap
-
-- [x] Browsable mentor marketplace
-- [x] Guided mentor matching
-- [x] Public mentor profiles
-- [x] External booking flow + dashboard records
-- [x] Reviews with database-level eligibility checks
-- [x] Profile photo storage
-- [x] AI mentor request validation and basic rate limiting
-- [x] Account-synced AI mentor conversations and searchable history
-- [x] Cal.com webhook receiver and booking synchronization
-- [ ] Metadata-first booking correlation for the new booking flow
-- [ ] Admin dashboard for mentor/review approval
-- [ ] Distributed AI rate limiting and usage quotas
-- [ ] In-app scheduling
-
-## Contributing
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
-
-## License
-
-[MIT](./LICENSE)
