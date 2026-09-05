@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, ShieldCheck, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -69,7 +70,7 @@ export default function AdminPage() {
 }
 
 function Stat({ label, value }: { label: string; value: number }) { return <div className="rounded-sm border border-ink/10 bg-white p-5 pin-shadow"><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink/45">{label}</p><p className="mt-2 font-display text-3xl">{value}</p></div>; }
-function Panel({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) { return <section className="mt-7 rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7"><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">{eyebrow}</p><h2 className="mt-2 font-display text-2xl">{title}</h2><div className="mt-6">{children}</div></section>; }
+function Panel({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) { return <section className="mt-7 rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7"><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">{eyebrow}</p><h2 className="mt-2 font-display text-2xl">{title}</h2><div className="mt-6">{children}</div></section>; }
 function Empty({ text }: { text: string }) { return <div className="rounded-sm border border-dashed border-ink/15 bg-paper p-8 text-center text-sm text-ink/55">{text}</div>; }
 function QueueRow({ title, detail, action, onClick }: { title: string; detail: string; action: string; onClick: () => void }) { return <div className="flex items-center justify-between gap-4 rounded-sm border border-ink/10 bg-paper p-4"><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-ink/50">{detail}</p></div><button onClick={onClick} className="text-xs font-semibold text-board">{action} →</button></div>; }
 function Health({ label, value }: { label: string; value: number }) { return <div className="flex items-center justify-between border-b border-ink/10 pb-3"><span className="text-ink/60">{label}</span><strong>{value}</strong></div>; }
