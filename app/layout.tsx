@@ -22,9 +22,40 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AglaKadam — Find a mentor, book one call",
+  metadataBase: new URL("https://agla-kadam.vercel.app"),
+  title: {
+    default: "AglaKadam — Find a mentor, book one call",
+    template: "%s | AglaKadam",
+  },
   description:
-    "Agla kadam means 'next step' in Hindi. For college dropouts, final-year students, and career switchers: get matched with a mentor and book a single guidance call. No sign-up fees, no algorithms guessing at you.",
+    "Agla kadam means 'next step' in Hindi. Find useful perspective from someone who has already navigated the kind of decision you are facing.",
+  applicationName: "AglaKadam",
+  keywords: [
+    "career mentor",
+    "career guidance",
+    "mentorship",
+    "career transition",
+    "student mentor",
+    "career advice",
+    "AglaKadam",
+  ],
+  openGraph: {
+    type: "website",
+    url: "https://agla-kadam.vercel.app",
+    siteName: "AglaKadam",
+    title: "AglaKadam — Find a mentor, book one call",
+    description:
+      "Find someone who has already navigated the kind of decision you are facing, then have one focused conversation with them.",
+  },
+  twitter: {
+    card: "summary",
+    title: "AglaKadam — Find a mentor, book one call",
+    description: "Find useful perspective when you are between chapters.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
