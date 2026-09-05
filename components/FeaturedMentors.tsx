@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { ArrowRight, CalendarDays, MapPin, Star, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, MapPin, ShieldCheck, Star, UserRound } from "lucide-react";
 import ArticlesSection from "@/components/ArticlesSection";
 
 type Mentor = {
@@ -18,6 +18,7 @@ type Mentor = {
   bio?: string;
   photo_url?: string;
   calendly?: string;
+  verification_status?: string;
 };
 
 type Rating = { mentor_id: string; rating: number };
@@ -37,7 +38,7 @@ export default function FeaturedMentors() {
       const [{ data: mentorData, error: mentorError }, { data: reviewData, error: reviewError }] = await Promise.all([
         supabase
           .from("mentors_public")
-          .select("id,name,headline,role,company,location,expertise,experience,bio,photo_url,calendly")
+          .select("id,name,headline,role,company,location,expertise,experience,bio,photo_url,calendly,verification_status")
           .order("created_at", { ascending: false })
           .limit(3),
         supabase.from("reviews").select("mentor_id,rating").eq("status", "published"),
@@ -104,7 +105,12 @@ export default function FeaturedMentors() {
 
                 return (
                   <article key={mentor.id} className="pin-shadow flex flex-col rounded-sm border border-ink/10 bg-paper p-6 transition-transform hover:-translate-y-1">
-                    {mentor.photo_url ? <img src={mentor.photo_url} alt={`${mentor.name} profile`} className="h-20 w-20 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full border border-board/10 bg-board/10 font-display text-3xl text-board">{initial}</div>}
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        {mentor.photo_url ? <img src={mentor.photo_url} alt={`${mentor.name} profile`} className="h-20 w-20 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full border border-board/10 bg-board/10 font-display text-3xl text-board">{initial}</div>}
+                      </div>
+                      {mentor.verification_status === "verified" && <span className="inline-flex items-center gap-1 rounded-full bg-board/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-board"><ShieldCheck size={12} /> Verified</span>}
+                    </div>
                     <div className="mt-5"><h3 className="font-display text-xl">{mentor.name}</h3><p className="mt-1 text-sm text-ink/60">{title}</p></div>
                     <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink/55">
                       {rating && <span className="inline-flex items-center gap-1"><Star size={13} className="fill-amber text-amber" /> {rating.average} ({rating.count})</span>}
@@ -122,6 +128,21 @@ export default function FeaturedMentors() {
               })}
             </div>
           )}
+
+          <div className="mt-10 grid gap-3 border-t border-ink/10 pt-6 sm:grid-cols-3">
+            <div className="flex gap-3 rounded-sm bg-paper p-4">
+              <ShieldCheck size={18} className="mt-0.5 shrink-0 text-board" />
+              <div><p className="text-sm font-semibold">Transparent profiles</p><p className="mt-1 text-xs leading-relaxed text-ink/55">See experience, expertise and verification status before you book.</p></div>
+            </div>
+            <div className="flex gap-3 rounded-sm bg-paper p-4">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-board" />
+              <div><p className="text-sm font-semibold">Published feedback</p><p className="mt-1 text-xs leading-relaxed text-ink/55">Reviews come from completed conversations on AglaKadam.</p></div>
+            </div>
+            <div className="flex gap-3 rounded-sm bg-paper p-4">
+              <CalendarDays size={18} className="mt-0.5 shrink-0 text-board" />
+              <div><p className="text-sm font-semibold">One focused call</p><p className="mt-1 text-xs leading-relaxed text-ink/55">A simple 30-minute conversation around your actual question.</p></div>
+            </div>
+          </div>
 
           <Link href="/mentors" className="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-board sm:hidden">View all mentors <ArrowRight size={15} /></Link>
         </div>
