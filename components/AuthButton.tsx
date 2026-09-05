@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -15,10 +16,13 @@ export default function AuthButton() {
 
     async function loadUser() {
       const { data } = await supabase.auth.getUser();
-      if (active) {
-        setUser(data.user ?? null);
-        setLoading(false);
+      if (!active) return;
+      setUser(data.user ?? null);
+      if (data.user) {
+        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", data.user.id).maybeSingle();
+        if (active) setProfileName(profile?.full_name ?? null);
       }
+      setLoading(false);
     }
 
     loadUser();
@@ -28,6 +32,7 @@ export default function AuthButton() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (active) {
         setUser(session?.user ?? null);
+        if (!session?.user) setProfileName(null);
         setLoading(false);
       }
     });
@@ -41,56 +46,31 @@ export default function AuthButton() {
   async function handleSignOut() {
     setSigningOut(true);
     const { error } = await supabase.auth.signOut();
-
     if (error) {
       setSigningOut(false);
       return;
     }
-
     setUser(null);
+    setProfileName(null);
     window.location.href = "/";
   }
 
   if (loading) {
-    return (
-      <div className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium">
-        Loading...
-      </div>
-    );
+    return <div className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium">Loading...</div>;
   }
 
   if (!user) {
-    return (
-      <Link
-        href="/auth"
-        className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper"
-      >
-        Sign in
-      </Link>
-    );
+    return <Link href="/auth" className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper">Sign in</Link>;
   }
 
-  const name =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    user.email?.split("@")[0] ||
-    "Account";
+  const name = profileName || user.user_metadata?.full_name || user.user_metadata?.name || "Account";
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        href="/dashboard"
-        className="inline-flex max-w-[160px] items-center justify-center truncate rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper"
-        title={user.email ?? undefined}
-      >
+      <Link href="/dashboard" className="inline-flex max-w-[150px] items-center justify-center truncate rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper" title={user.email ?? undefined}>
         {name}
       </Link>
-      <button
-        type="button"
-        onClick={handleSignOut}
-        disabled={signingOut}
-        className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="button" onClick={handleSignOut} disabled={signingOut} className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60">
         {signingOut ? "Signing out..." : "Log out"}
       </button>
     </div>
