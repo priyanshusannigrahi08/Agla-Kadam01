@@ -38,16 +38,39 @@ export async function GET(request: NextRequest) {
   const user = await getAdminUser(request);
   if (!user) return jsonError("Admin access required.", 403);
 
-  const admin = getSupabaseAdmin();
-  const [{ data: mentors, error: mentorsError }, { data: reviews, error: reviewsError }, { data: bookings, error: bookingsError }] = await Promise.all([
-    admin.from("mentors").select("id,name,email,headline,role,company,location,status,verification_status,created_at").order("created_at", { ascending: false }),
-    admin.from("reviews").select("id,mentor_id,reviewer_name,rating,comment,status,created_at").order("created_at", { ascending: false }),
-    admin.from("bookings").select("id,mentor_id,mentee_user_id,scheduled_for,duration_minutes,status,booking_url,created_at").order("created_at", { ascending: false }),
-  ]);
+  let admin: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    admin = getSupabaseAdmin();
+  } catch (error) {
+    console.error("Admin Supabase configuration error", error);
+    return jsonError("Admin server configuration is incomplete. Check the Supabase server key in Vercel.", 500);
+  }
 
-  if (mentorsError || reviewsError || bookingsError) {
-    console.error("Admin data load error", { mentorsError, reviewsError, bookingsError });
-    return jsonError("Couldn't load admin data.", 500);
+  const { data: mentors, error: mentorsError } = await admin
+    .from("mentors")
+    .select("id,name,email,headline,role,company,location,status,verification_status,created_at")
+    .order("created_at", { ascending: false });
+  if (mentorsError) {
+    console.error("Admin mentors query error", mentorsError);
+    return jsonError("Admin database error while loading mentors. Make sure the latest Supabase migrations have been run.", 500);
+  }
+
+  const { data: reviews, error: reviewsError } = await admin
+    .from("reviews")
+    .select("id,mentor_id,reviewer_name,rating,comment,status,created_at")
+    .order("created_at", { ascending: false });
+  if (reviewsError) {
+    console.error("Admin reviews query error", reviewsError);
+    return jsonError("Admin database error while loading reviews. Run the current Supabase migrations.", 500);
+  }
+
+  const { data: bookings, error: bookingsError } = await admin
+    .from("bookings")
+    .select("id,mentor_id,mentee_user_id,scheduled_for,duration_minutes,status,booking_url,created_at")
+    .order("created_at", { ascending: false });
+  if (bookingsError) {
+    console.error("Admin bookings query error", bookingsError);
+    return jsonError("Admin database error while loading bookings. Run the current Supabase migrations.", 500);
   }
 
   return NextResponse.json({
