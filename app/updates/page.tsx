@@ -26,13 +26,14 @@ export default function UpdatesPage() {
       supabase.from("conversation_actions").select("id,completed,booking_id").eq("user_id", currentUser.id).eq("completed", false),
     ]);
     const bookings = (bookingResult.data || []) as Row[];
+    const actions = (actionResult.data || []) as Row[];
     const active = bookings.filter(b => ["requested", "confirmed"].includes(b.status));
     const completed = bookings.filter(b => b.status === "completed");
     const context = [menteeResult.data?.stage, menteeResult.data?.area, menteeResult.data?.challenge, menteeResult.data?.situation, menteeResult.data?.background, menteeResult.data?.stuck_on].filter(Boolean).join(" ");
     const profile = profileResult.data;
     const next: Update[] = [];
     if (active.length) next.push({ icon: CalendarDays, title: active.length === 1 ? "Your next conversation is scheduled." : `${active.length} conversations are on your calendar.`, body: `Your next conversation is ${formatDate(active[0].scheduled_for)}. Bring one decision, one question and a little context.`, href: "/dashboard", cta: "Prepare for the call" });
-    if ((actionResult.data || []).length) next.push({ icon: CheckCircle2, title: `${actionResult.data.length} action${actionResult.data.length === 1 ? "" : "s"} still open.`, body: "Keep momentum by choosing the smallest useful action you can take this week.", href: actionResult.data[0]?.booking_id ? `/conversation/${actionResult.data[0].booking_id}` : "/dashboard", cta: "Continue your plan" });
+    if (actions.length) next.push({ icon: CheckCircle2, title: `${actions.length} action${actions.length === 1 ? "" : "s"} still open.`, body: "Keep momentum by choosing the smallest useful action you can take this week.", href: actions[0]?.booking_id ? `/conversation/${actions[0].booking_id}` : "/dashboard", cta: "Continue your plan" });
     if (completed.length) next.push({ icon: MessageCircle, title: "Your last conversation can teach you something.", body: "Capture feedback while the conversation is still fresh. It helps you reflect and helps mentors improve.", href: "/review", cta: "Leave feedback" });
     const profileFields = [profile?.name, profile?.bio, profile?.city, profile?.current_status].filter(Boolean).length;
     if (profileFields < 3) next.push({ icon: UserRound, title: "Add more context to your profile.", body: "A clearer profile can make your discovery experience more useful.", href: "/profile-setup", cta: "Improve profile" });
