@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, Circle, LayoutDashboard, Plus, Sparkles, Tras
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import ActionSuggestions from "@/components/ActionSuggestions";
 
 type Row = Record<string, any>;
 type Action = Row & { completed?: boolean };
@@ -25,44 +26,21 @@ export default function ConversationPage() {
   async function load(currentUser: any) {
     if (!bookingId || !currentUser) return;
     setError("");
-    const { data: bookingRow, error: bookingError } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("id", bookingId)
-      .eq("mentee_user_id", currentUser.id)
-      .maybeSingle();
-
+    const { data: bookingRow, error: bookingError } = await supabase.from("bookings").select("*").eq("id", bookingId).eq("mentee_user_id", currentUser.id).maybeSingle();
     if (bookingError || !bookingRow) {
       setError("We couldn't find this conversation in your account.");
       setLoading(false);
       return;
     }
-
     setBooking(bookingRow);
-    const { data: mentorRow } = await supabase
-      .from("mentors_public")
-      .select("id,name,headline,photo_url,verification_status")
-      .eq("id", bookingRow.mentor_id)
-      .maybeSingle();
+    const { data: mentorRow } = await supabase.from("mentors_public").select("id,name,headline,photo_url,verification_status").eq("id", bookingRow.mentor_id).maybeSingle();
     setMentor(mentorRow ?? null);
-
-    const { data: actionRows, error: actionError } = await supabase
-      .from("conversation_actions")
-      .select("*")
-      .eq("booking_id", bookingId)
-      .eq("user_id", currentUser.id)
-      .order("created_at", { ascending: true });
-
+    const { data: actionRows, error: actionError } = await supabase.from("conversation_actions").select("*").eq("booking_id", bookingId).eq("user_id", currentUser.id).order("created_at", { ascending: true });
     if (actionError) {
       const message = String(actionError.message || "");
-      if (/conversation_actions|relation .* does not exist/i.test(message)) {
-        setMissingTable(true);
-      } else {
-        setError("We couldn't load your action plan right now.");
-      }
-    } else {
-      setActions(actionRows || []);
-    }
+      if (/conversation_actions|relation .* does not exist/i.test(message)) setMissingTable(true);
+      else setError("We couldn't load your action plan right now.");
+    } else setActions(actionRows || []);
     setLoading(false);
   }
 
@@ -70,10 +48,7 @@ export default function ConversationPage() {
     async function start() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
-      if (!currentUser) {
-        setLoading(false);
-        return;
-      }
+      if (!currentUser) { setLoading(false); return; }
       await load(currentUser);
     }
     start();
@@ -83,90 +58,43 @@ export default function ConversationPage() {
   const mentorName = mentor?.name || "your mentor";
   const isCompleted = booking?.status === "completed";
 
-  async function addAction() {
-    const value = text.trim();
+  async function addAction(value = text.trim()) {
     if (!value || !user || !bookingId || saving || !isCompleted) return;
     setSaving(true);
     setError("");
-    const { data, error: insertError } = await supabase
-      .from("conversation_actions")
-      .insert({ booking_id: bookingId, user_id: user.id, action_text: value })
-      .select("*")
-      .single();
-    if (insertError) {
-      setError("We couldn't save that action. Please try again.");
-    } else if (data) {
-      setActions(previous => [...previous, data]);
-      setText("");
-    }
+    const { data, error: insertError } = await supabase.from("conversation_actions").insert({ booking_id: bookingId, user_id: user.id, action_text: value }).select("*").single();
+    if (insertError) setError("We couldn't save that action. Please try again.");
+    else if (data) { setActions(previous => [...previous, data]); setText(""); }
     setSaving(false);
   }
 
   async function toggleAction(action: Action) {
     const nextCompleted = !action.completed;
     setError("");
-    const { data, error: updateError } = await supabase
-      .from("conversation_actions")
-      .update({ completed: nextCompleted })
-      .eq("id", action.id)
-      .eq("user_id", user.id)
-      .select("*")
-      .single();
-    if (updateError) {
-      setError("We couldn't update that action.");
-    } else if (data) {
-      setActions(previous => previous.map(item => item.id === action.id ? data : item));
-    }
+    const { data, error: updateError } = await supabase.from("conversation_actions").update({ completed: nextCompleted }).eq("id", action.id).eq("user_id", user.id).select("*").single();
+    if (updateError) setError("We couldn't update that action.");
+    else if (data) setActions(previous => previous.map(item => item.id === action.id ? data : item));
   }
 
   async function removeAction(action: Action) {
     setError("");
-    const { error: deleteError } = await supabase
-      .from("conversation_actions")
-      .delete()
-      .eq("id", action.id)
-      .eq("user_id", user.id);
-    if (deleteError) {
-      setError("We couldn't remove that action.");
-    } else {
-      setActions(previous => previous.filter(item => item.id !== action.id));
-    }
+    const { error: deleteError } = await supabase.from("conversation_actions").delete().eq("id", action.id).eq("user_id", user.id);
+    if (deleteError) setError("We couldn't remove that action.");
+    else setActions(previous => previous.filter(item => item.id !== action.id));
   }
 
   if (loading) return <main className="min-h-screen bg-paper flex items-center justify-center"><p className="font-mono text-sm text-ink/50">Loading your next step…</p></main>;
-
   if (!user) return <main className="min-h-screen bg-paper flex items-center justify-center px-6"><div className="max-w-sm rounded-sm border border-ink/10 bg-white p-8 text-center pin-shadow"><p className="text-ink/70">Sign in to view your action plan.</p><Link href={`/auth?next=/conversation/${bookingId}`} className="mt-5 inline-flex rounded-sm bg-amber px-6 py-3 font-semibold">Sign in</Link></div></main>;
-
   if (!booking) return <main className="min-h-screen bg-paper text-ink"><div className="mx-auto max-w-2xl px-6 py-16"><Link href="/dashboard" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">← Dashboard</Link><div className="mt-8 rounded-sm border border-ink/10 bg-white p-8 pin-shadow"><h1 className="font-display text-3xl">Conversation not found.</h1><p className="mt-3 text-sm leading-6 text-ink/55">This conversation may not belong to your account, or it may no longer be available.</p></div></div></main>;
 
   return <main className="min-h-screen bg-paper text-ink">
-    <header className="border-b border-ink/10 bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-10 sm:py-14">
-        <Link href="/dashboard" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">← Dashboard</Link>
-        <div className="mt-7 flex items-start gap-4">
-          {mentor?.photo_url ? <img src={mentor.photo_url} alt="" className="h-14 w-14 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-board/10 font-display text-xl text-board">{mentorName.charAt(0)}</div>}
-          <div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">After the conversation</p><h1 className="mt-2 font-display text-3xl sm:text-4xl">What will you do next?</h1><p className="mt-2 text-sm leading-6 text-ink/60">Turn your conversation with {mentorName} into one or two concrete actions. Small is fine.</p></div>
-        </div>
-      </div>
-    </header>
-
+    <header className="border-b border-ink/10 bg-white"><div className="mx-auto max-w-3xl px-6 py-10 sm:py-14"><Link href="/dashboard" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">← Dashboard</Link><div className="mt-7 flex items-start gap-4">{mentor?.photo_url ? <img src={mentor.photo_url} alt="" className="h-14 w-14 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-board/10 font-display text-xl text-board">{mentorName.charAt(0)}</div>}<div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">After the conversation</p><h1 className="mt-2 font-display text-3xl sm:text-4xl">What will you do next?</h1><p className="mt-2 text-sm leading-6 text-ink/60">Turn your conversation with {mentorName} into one or two concrete actions. Small is fine.</p></div></div></div></header>
     <div className="mx-auto max-w-3xl px-6 py-8 sm:py-12">
       {!isCompleted && <section className="rounded-sm border border-amber/30 bg-amber/10 p-6"><p className="font-semibold">This action plan opens after the conversation is marked complete.</p><p className="mt-2 text-sm leading-6 text-ink/60">Once your mentor marks the booking completed, come back here to capture what you want to do next.</p></section>}
-
       {missingTable && <section className="rounded-sm border border-board/15 bg-board/[0.035] p-6"><div className="flex gap-3"><Sparkles size={18} className="mt-0.5 shrink-0 text-board"/><div><p className="font-semibold">Your action plan is ready to be enabled.</p><p className="mt-2 text-sm leading-6 text-ink/60">Run <span className="font-mono text-xs">supabase/career_journey.sql</span> in your Supabase SQL Editor, then refresh this page.</p></div></div></section>}
-
-      {isCompleted && !missingTable && <section className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7">
-        <div className="flex items-end justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">Your next steps</p><h2 className="mt-2 font-display text-2xl">Keep it concrete.</h2></div><span className="font-mono text-[10px] uppercase tracking-wide text-ink/45">{completedCount}/{actions.length} done</span></div>
-        <div className="mt-6 space-y-2">{actions.length ? actions.map(action => <div key={action.id} className={`flex items-center gap-3 rounded-sm border p-4 ${action.completed ? "border-board/10 bg-board/[0.035]" : "border-ink/10"}`}><button type="button" onClick={() => toggleAction(action)} className="shrink-0 text-board" aria-label={action.completed ? "Mark action incomplete" : "Mark action complete"}>{action.completed ? <CheckCircle2 size={20}/> : <Circle size={20}/>}</button><p className={`min-w-0 flex-1 text-sm leading-6 ${action.completed ? "text-ink/45 line-through" : "text-ink/75"}`}>{action.action_text}</p><button type="button" onClick={() => removeAction(action)} className="shrink-0 p-1 text-ink/30 hover:text-ink" aria-label="Remove action"><Trash2 size={15}/></button></div>) : <div className="rounded-sm border border-dashed border-ink/15 p-6 text-center"><p className="font-display text-xl">Nothing captured yet.</p><p className="mt-2 text-sm text-ink/50">Add one action you can actually take this week.</p></div>}</div>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row"><input value={text} onChange={event => setText(event.target.value.slice(0, 500))} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addAction(); } }} placeholder="e.g. Message two people working in this field" className="min-w-0 flex-1 rounded-sm border border-ink/15 bg-paper px-4 py-3 text-sm outline-none focus:border-board/40" maxLength={500} /><button type="button" disabled={!text.trim() || saving} onClick={addAction} className="inline-flex items-center justify-center gap-2 rounded-sm bg-amber px-5 py-3 text-sm font-semibold disabled:opacity-50"><Plus size={15}/>{saving ? "Saving…" : "Add action"}</button></div>
-        {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-      </section>}
-
-      <section className="mt-6 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-sm border border-ink/10 bg-white p-6"><p className="font-mono text-[10px] uppercase tracking-wide text-board/60">Three prompts</p><ul className="mt-4 space-y-3 text-sm leading-6 text-ink/65"><li>• What did you learn that changed your thinking?</li><li>• What is the smallest useful action you can take?</li><li>• Who or what could help you take it?</li></ul></div>
-        <div className="rounded-sm border border-board/15 bg-board/[0.035] p-6"><p className="font-mono text-[10px] uppercase tracking-wide text-board/60">Remember</p><p className="mt-3 text-sm leading-6 text-ink/60">AglaKadam is here to help you move from a conversation to a next step. The plan is yours, and you can change it as you learn.</p><Link href="/find-mentor" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-board">Find your next conversation <ArrowRight size={14}/></Link></div>
-      </section>
-
+      {isCompleted && !missingTable && <section className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7"><div className="flex items-end justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">Your next steps</p><h2 className="mt-2 font-display text-2xl">Keep it concrete.</h2></div><span className="font-mono text-[10px] uppercase tracking-wide text-ink/45">{completedCount}/{actions.length} done</span></div><div className="mt-6 space-y-2">{actions.length ? actions.map(action => <div key={action.id} className={`flex items-center gap-3 rounded-sm border p-4 ${action.completed ? "border-board/10 bg-board/[0.035]" : "border-ink/10"}`}><button type="button" onClick={() => toggleAction(action)} className="shrink-0 text-board" aria-label={action.completed ? "Mark action incomplete" : "Mark action complete"}>{action.completed ? <CheckCircle2 size={20}/> : <Circle size={20}/>}</button><p className={`min-w-0 flex-1 text-sm leading-6 ${action.completed ? "text-ink/45 line-through" : "text-ink/75"}`}>{action.action_text}</p><button type="button" onClick={() => removeAction(action)} className="shrink-0 p-1 text-ink/30 hover:text-ink" aria-label="Remove action"><Trash2 size={15}/></button></div>) : <div className="rounded-sm border border-dashed border-ink/15 p-6 text-center"><p className="font-display text-xl">Nothing captured yet.</p><p className="mt-2 text-sm text-ink/50">Add one action you can actually take this week.</p></div>}</div><div className="mt-6 flex flex-col gap-2 sm:flex-row"><input value={text} onChange={event => setText(event.target.value.slice(0, 500))} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); addAction(); } }} placeholder="e.g. Message two people working in this field" className="min-w-0 flex-1 rounded-sm border border-ink/15 bg-paper px-4 py-3 text-sm outline-none focus:border-board/40" maxLength={500}/><button type="button" disabled={!text.trim() || saving} onClick={() => addAction()} className="inline-flex items-center justify-center gap-2 rounded-sm bg-amber px-5 py-3 text-sm font-semibold disabled:opacity-50"><Plus size={15}/>{saving ? "Saving…" : "Add action"}</button></div>{error && <p className="mt-4 text-sm text-red-700">{error}</p>}</section>}
+      {isCompleted && !missingTable && <ActionSuggestions onSelect={(value) => { setText(value); }} disabled={saving} />}
+      <section className="mt-6 grid gap-4 sm:grid-cols-2"><div className="rounded-sm border border-ink/10 bg-white p-6"><p className="font-mono text-[10px] uppercase tracking-wide text-board/60">Three prompts</p><ul className="mt-4 space-y-3 text-sm leading-6 text-ink/65"><li>• What did you learn that changed your thinking?</li><li>• What is the smallest useful action you can take?</li><li>• Who or what could help you take it?</li></ul></div><div className="rounded-sm border border-board/15 bg-board/[0.035] p-6"><p className="font-mono text-[10px] uppercase tracking-wide text-board/60">Remember</p><p className="mt-3 text-sm leading-6 text-ink/60">AglaKadam is here to help you move from a conversation to a next step. The plan is yours, and you can change it as you learn.</p><Link href="/find-mentor" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-board">Find your next conversation <ArrowRight size={14}/></Link></div></section>
       <div className="mt-8 flex flex-wrap gap-3"><Link href="/dashboard" className="inline-flex items-center gap-2 rounded-sm border border-ink/15 px-5 py-3 text-sm font-semibold"><LayoutDashboard size={15}/> Dashboard</Link><Link href="/mentors" className="inline-flex items-center gap-2 rounded-sm bg-amber px-5 py-3 text-sm font-semibold">Explore mentors <ArrowRight size={15}/></Link></div>
     </div>
   </main>;
