@@ -157,7 +157,7 @@ export default function MentorSignup() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw new Error("We couldn't verify your sign-in. Please sign in again.");
       if (!user) {
-        router.push("/auth?next=/mentor");
+        window.location.replace("/auth?next=/mentor");
         return;
       }
 
