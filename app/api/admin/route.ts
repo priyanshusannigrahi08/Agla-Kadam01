@@ -73,11 +73,33 @@ export async function GET(request: NextRequest) {
     return jsonError("Admin database error while loading bookings. Run the current Supabase migrations.", 500);
   }
 
+  const mentorIds = (mentors || []).map((mentor) => mentor.id);
+  let documents: unknown[] = [];
+  let assessments: unknown[] = [];
+  if (mentorIds.length > 0) {
+    const [{ data: documentRows, error: documentsError }, { data: assessmentRows, error: assessmentsError }] = await Promise.all([
+      admin.from("mentor_documents").select("id,mentor_id,document_type,file_name,mime_type,file_size,created_at").in("mentor_id", mentorIds).order("created_at", { ascending: false }),
+      admin.from("mentor_ai_assessments").select("id,mentor_id,document_ids,extracted_profile,consistency_checks,readiness_score,readiness_label,strengths,improvements,status,model,created_at").in("mentor_id", mentorIds).order("created_at", { ascending: false }),
+    ]);
+    if (documentsError) {
+      console.error("Admin mentor evidence query error", documentsError);
+      return jsonError("Mentor evidence migration is missing. Run supabase/mentor_ai_evidence.sql.", 500);
+    }
+    if (assessmentsError) {
+      console.error("Admin AI assessment query error", assessmentsError);
+      return jsonError("Mentor AI assessment migration is missing. Run supabase/mentor_ai_evidence.sql.", 500);
+    }
+    documents = documents || [];
+    assessments = assessmentRows || [];
+  }
+
   return NextResponse.json({
     admin: { email: user.email },
     mentors: mentors || [],
     reviews: reviews || [],
     bookings: bookings || [],
+    mentorDocuments: documents,
+    mentorAssessments: assessments,
   });
 }
 
