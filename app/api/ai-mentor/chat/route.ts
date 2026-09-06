@@ -34,11 +34,9 @@ export async function POST(request: NextRequest) {
         const message = item as ChatMessage;
         return (message.role === "user" || message.role === "assistant") && typeof message.content === "string";
       })
-      .map((message) => ({ ...message, content: message.content.slice(0, 4000) }))
+      .map((message: ChatMessage) => ({ ...message, content: message.content.slice(0, 4000) }))
       .slice(-30);
 
-    // Career memory is private. Only the authenticated user's own records are
-    // read server-side; clients cannot submit or override this context.
     let memoryBlock = "No saved career context is available.";
     const token = bearerToken(request);
     if (token) {
