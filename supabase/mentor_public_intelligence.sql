@@ -65,19 +65,33 @@ $$;
 
 revoke execute on function public.sync_mentor_public_intelligence(uuid) from public, anon, authenticated;
 
+create or replace function public.sync_mentor_public_intelligence_trigger()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'DELETE' then
+    perform public.sync_mentor_public_intelligence(old.mentor_id);
+  else
+    perform public.sync_mentor_public_intelligence(new.mentor_id);
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+revoke execute on function public.sync_mentor_public_intelligence_trigger() from public, anon, authenticated;
+
 drop trigger if exists sync_mentor_public_intelligence_assessment on public.mentor_ai_assessments;
 create trigger sync_mentor_public_intelligence_assessment
 after insert or update or delete on public.mentor_ai_assessments
-for each row execute function public.sync_mentor_public_intelligence(
-  case when tg_op = 'DELETE' then old.mentor_id else new.mentor_id end
-);
+for each row execute function public.sync_mentor_public_intelligence_trigger();
 
 drop trigger if exists sync_mentor_public_intelligence_document on public.mentor_documents;
 create trigger sync_mentor_public_intelligence_document
 after insert or update or delete on public.mentor_documents
-for each row execute function public.sync_mentor_public_intelligence(
-  case when tg_op = 'DELETE' then old.mentor_id else new.mentor_id end
-);
+for each row execute function public.sync_mentor_public_intelligence_trigger();
 
 -- Backfill only approved mentors. The latest completed assessment is the sole source
 -- for extracted discovery fields, preventing stale assessments from being combined.
