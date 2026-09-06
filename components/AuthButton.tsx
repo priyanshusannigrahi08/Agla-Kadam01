@@ -13,7 +13,6 @@ export default function AuthButton() {
 
   useEffect(() => {
     let active = true;
-
     async function loadUser() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
@@ -24,55 +23,33 @@ export default function AuthButton() {
       }
       setLoading(false);
     }
-
     loadUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (active) {
         setUser(session?.user ?? null);
         if (!session?.user) setProfileName(null);
         setLoading(false);
       }
     });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
   async function handleSignOut() {
     setSigningOut(true);
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      setSigningOut(false);
-      return;
-    }
-    setUser(null);
-    setProfileName(null);
-    window.location.href = "/";
+    if (error) { setSigningOut(false); return; }
+    setUser(null); setProfileName(null); window.location.href = "/";
   }
 
-  if (loading) {
-    return <div className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium">Loading...</div>;
-  }
-
-  if (!user) {
-    return <Link href="/auth" className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper">Sign in</Link>;
-  }
+  if (loading) return <div className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium">Loading...</div>;
+  if (!user) return <Link href="/auth" className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper">Sign in</Link>;
 
   const name = profileName || user.user_metadata?.full_name || user.user_metadata?.name || "Account";
-
   return (
     <div className="flex items-center gap-2">
-      <Link href="/dashboard" className="inline-flex max-w-[150px] items-center justify-center truncate rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper" title={user.email ?? undefined}>
-        {name}
-      </Link>
-      <button type="button" onClick={handleSignOut} disabled={signingOut} className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60">
-        {signingOut ? "Signing out..." : "Log out"}
-      </button>
+      <Link href="/dashboard" className="inline-flex max-w-[150px] items-center justify-center truncate rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper" title={user.email ?? undefined}>{name}</Link>
+      <Link href="/settings" aria-label="Account settings" className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-3 py-2.5 text-sm font-medium transition hover:bg-paper">Settings</Link>
+      <button type="button" onClick={handleSignOut} disabled={signingOut} className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60">{signingOut ? "Signing out..." : "Log out"}</button>
     </div>
   );
 }
