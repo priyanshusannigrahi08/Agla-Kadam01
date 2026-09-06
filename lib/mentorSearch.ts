@@ -51,14 +51,25 @@ function phraseMatches(query: string, profile: string) {
 }
 
 function intelligenceText(mentor: MentorSearchProfile) {
-  const intelligence = mentor.intelligence;
-  if (!intelligence) return "";
+  const direct = mentor.intelligence;
+  const projected = mentor as MentorSearchProfile & {
+    ai_skills?: string[];
+    ai_roles?: string[];
+    ai_industries?: string[];
+    ai_certifications?: string[];
+    ai_profile_available?: boolean;
+  };
   return [
-    ...(intelligence.skills || []),
-    ...(intelligence.roles || []),
-    ...(intelligence.industries || []),
-    ...(intelligence.certifications || []),
+    ...(direct?.skills || projected.ai_skills || []),
+    ...(direct?.roles || projected.ai_roles || []),
+    ...(direct?.industries || projected.ai_industries || []),
+    ...(direct?.certifications || projected.ai_certifications || []),
   ].join(" ");
+}
+
+function intelligenceAvailable(mentor: MentorSearchProfile) {
+  const projected = mentor as MentorSearchProfile & { ai_profile_available?: boolean };
+  return Boolean(mentor.intelligence?.ai_profile_available || projected.ai_profile_available);
 }
 
 export function mentorSearchScore(query: string, mentor: MentorSearchProfile) {
@@ -90,7 +101,7 @@ export function mentorSearchScore(query: string, mentor: MentorSearchProfile) {
   score += Math.min(20, phraseMatches(normalizedQuery, profile + " " + aiProfile));
   if (mentor.expertise && normalizedQuery.split(" ").some((term) => normalize(mentor.expertise!).includes(term))) score += 7;
   if (mentor.role && normalizedQuery.split(" ").some((term) => normalize(mentor.role!).includes(term))) score += 5;
-  if (mentor.intelligence?.ai_profile_available && aiOverlap > 0) score += 3;
+  if (intelligenceAvailable(mentor) && aiOverlap > 0) score += 3;
   if (mentor.verification_status === "verified") score += 2;
   if (mentor.availability) score += 1;
   return Math.min(100, score);
