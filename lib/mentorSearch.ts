@@ -1,4 +1,5 @@
 export type MentorSearchProfile = {
+  id?: string;
   name: string;
   headline?: string;
   bio?: string;
@@ -107,7 +108,11 @@ export function mentorSearchScore(query: string, mentor: MentorSearchProfile) {
   return Math.min(100, score);
 }
 
-export function rankMentors<T extends MentorSearchProfile>(query: string, mentors: T[]) {
+export function rankMentors<T extends MentorSearchProfile>(query: string, mentors: T[]): T[];
+export function rankMentors<T extends MentorSearchProfile>(mentors: T[], query: string): T[];
+export function rankMentors<T extends MentorSearchProfile>(queryOrMentors: string | T[], mentorsOrQuery: T[] | string): T[] {
+  const query = typeof queryOrMentors === "string" ? queryOrMentors : mentorsOrQuery as string;
+  const mentors = (Array.isArray(queryOrMentors) ? queryOrMentors : mentorsOrQuery) as T[];
   return mentors
     .map((mentor) => ({ mentor, score: mentorSearchScore(query, mentor) }))
     .filter(({ score }) => !query.trim() || score >= 10)
