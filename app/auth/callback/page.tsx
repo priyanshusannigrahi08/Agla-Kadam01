@@ -7,11 +7,13 @@ import { supabase } from "@/lib/supabaseClient";
 export default function AuthCallbackPage(){
  const [errorMessage,setErrorMessage]=useState("");
  useEffect(()=>{let cancelled=false;async function finish(){const url=new URL(window.location.href);const requested=url.searchParams.get("next")||"/dashboard";const next=requested.startsWith("/")&&!requested.startsWith("//")?requested:"/dashboard";const code=url.searchParams.get("code");if(code){const {error}=await supabase.auth.exchangeCodeForSession(code);if(error){if(!cancelled)setErrorMessage(error.message);return}}const {data:{user},error}=await supabase.auth.getUser();if(error||!user){if(!cancelled)setErrorMessage(error?.message||"No authentication session was returned. Please try signing in again.");return}
- const [{ data: mentorProfile, error: mentorError }, { data: menteeProfile, error: menteeError }] = await Promise.all([
+ const [{ data: profile, error: profileError }, { data: mentorProfile, error: mentorError }, { data: menteeProfile, error: menteeError }] = await Promise.all([
+   supabase.from("profiles").select("id,full_name,age").eq("id", user.id).maybeSingle(),
    supabase.from("mentors").select("id").eq("user_id", user.id).maybeSingle(),
    supabase.from("mentees").select("id").eq("user_id", user.id).maybeSingle(),
  ]);
- if(mentorError||menteeError){if(!cancelled)setErrorMessage("We couldn't finish setting up your account. Please try signing in again.");return}
+ if(profileError||mentorError||menteeError){if(!cancelled)setErrorMessage("We couldn't finish setting up your account. Please try signing in again.");return}
+ if(!profile){window.location.replace("/profile-setup");return}
  if(!mentorProfile&&!menteeProfile){window.location.replace("/onboarding");return}
  window.location.replace(next);
  }finish();return()=>{cancelled=true}},[]);
