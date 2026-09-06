@@ -1,212 +1,229 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Edit3, MessageCircle, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
-type Row = Record<string, unknown>;
+type Row = Record<string, any>;
+type Booking = Row & { mentor?: Row | null };
 
-// Fields we never want to print out raw in the generic list below —
-// either because they're internal, or shown separately (photo).
-const HIDDEN_KEYS = new Set(["id", "user_id", "photo_url", "email"]);
-
-function labelFor(key: string) {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    requested: "Requested",
+    confirmed: "Confirmed",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return labels[status] || status;
 }
 
-function formatValue(value: unknown) {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  return String(value);
+function statusClass(status: string) {
+  if (status === "completed") return "bg-board/10 text-board";
+  if (status === "confirmed") return "bg-amber/20 text-ink";
+  if (status === "cancelled") return "bg-ink/5 text-ink/45";
+  return "bg-paper text-ink/60";
 }
 
-function ProfileCard({
-  title,
-  row,
-  statusBadge,
-}: {
-  title: string;
-  row: Row;
-  statusBadge?: { label: string; positive: boolean };
-}) {
-  const photoUrl = typeof row.photo_url === "string" ? row.photo_url : null;
-  const name = typeof row.name === "string" ? row.name : "";
-  const entries = Object.entries(row).filter(
-    ([key, value]) => !HIDDEN_KEYS.has(key) && value !== null && value !== ""
-  );
+function formatDate(value?: string | null) {
+  if (!value) return "Time set by mentor calendar";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Time set by mentor calendar";
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
 
+function ProfileSummary({ profile }: { profile: Row | null }) {
+  const name = profile?.name || "Your profile";
+  const fields = [profile?.city, profile?.current_status, profile?.bio].filter(Boolean);
   return (
-    <div className="bg-white rounded-sm border border-ink/10 p-6 pin-shadow">
-      <div className="flex items-center justify-between mb-5">
+    <section className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={`${name}'s profile`}
-              className="h-14 w-14 rounded-full object-cover border border-ink/10"
-            />
-          ) : (
-            <div className="h-14 w-14 rounded-full bg-board/10 border border-board/10 flex items-center justify-center font-display text-xl text-board">
-              {name?.charAt(0).toUpperCase() || "?"}
-            </div>
-          )}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-board/10 text-board">
+            <UserRound size={24} />
+          </div>
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-board/60">
-              {title}
-            </p>
-            {name && <h2 className="font-display text-xl">{name}</h2>}
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">Your profile</p>
+            <h2 className="mt-1 font-display text-2xl">{name}</h2>
+            <p className="mt-1 text-sm text-ink/50">{fields.length ? fields.join(" · ") : "Add a little more about yourself"}</p>
           </div>
         </div>
+        <Link href="/profile-setup" className="inline-flex items-center justify-center gap-2 rounded-sm border border-ink/15 px-4 py-2.5 text-sm font-semibold hover:bg-ink/5">
+          <Edit3 size={14} /> Edit profile
+        </Link>
+      </div>
+    </section>
+  );
+}
 
-        {statusBadge && (
-          <span
-            className={`font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1.5 rounded-full ${
-              statusBadge.positive
-                ? "bg-board/10 text-board"
-                : "bg-amber/20 text-amber"
-            }`}
-          >
-            {statusBadge.label}
-          </span>
-        )}
+function BookingCard({ booking, onReview }: { booking: Booking; onReview?: () => void }) {
+  const mentor = booking.mentor;
+  const name = mentor?.name || "Your mentor";
+  const photo = mentor?.photo_url;
+  const initial = name.trim().charAt(0).toUpperCase() || "M";
+  const isCompleted = booking.status === "completed";
+  const isCancelled = booking.status === "cancelled";
+  const bookingUrl = typeof booking.booking_url === "string" && booking.booking_url.startsWith("https://") ? booking.booking_url : null;
+
+  return (
+    <article className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow">
+      <div className="flex items-start gap-4">
+        {photo ? <img src={photo} alt={`${name}'s profile`} className="h-14 w-14 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-board/10 font-display text-xl text-board">{initial}</div>}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-display text-xl">{name}</h3>
+            {mentor?.verification_status === "verified" && <span className="inline-flex items-center gap-1 rounded-full bg-board/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wide text-board"><ShieldCheck size={11} /> Verified</span>}
+          </div>
+          <p className="mt-1 text-sm text-ink/55">{mentor?.headline || "Mentoring conversation"}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide ${statusClass(booking.status)}`}>{statusLabel(booking.status)}</span>
       </div>
 
-      <dl className="space-y-3">
-        {entries.map(([key, value]) => (
-          <div key={key}>
-            <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink/40">
-              {labelFor(key)}
-            </dt>
-            <dd className="font-body text-sm text-ink/80 mt-0.5">{formatValue(value)}</dd>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-sm bg-paper p-4">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-board/60">When</p>
+          <p className="mt-2 flex items-center gap-2 text-sm font-semibold"><CalendarDays size={15} className="text-board" /> {formatDate(booking.scheduled_for)}</p>
+        </div>
+        <div className="rounded-sm bg-paper p-4">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-board/60">Format</p>
+          <p className="mt-2 flex items-center gap-2 text-sm font-semibold"><Clock3 size={15} className="text-board" /> {booking.duration_minutes || 30}-minute conversation</p>
+        </div>
+      </div>
+
+      {!isCancelled && !isCompleted && (
+        <div className="mt-5 rounded-sm border border-board/10 bg-board/[0.035] p-5">
+          <div className="flex gap-3">
+            <Sparkles size={18} className="mt-0.5 shrink-0 text-board" />
+            <div>
+              <p className="font-semibold">Make the conversation count</p>
+              <p className="mt-1 text-sm leading-6 text-ink/60">Bring one decision, one question, and a little context. You don't need to have everything figured out.</p>
+              <Link href="/find-mentor" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-board hover:underline">Get help framing your question <ArrowRight size={13} /></Link>
+            </div>
           </div>
-        ))}
-      </dl>
-    </div>
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <Link href={mentor?.id ? `/mentors/${mentor.id}` : "/mentors"} className="inline-flex flex-1 items-center justify-center rounded-sm border border-ink/15 px-4 py-2.5 text-sm font-semibold hover:bg-ink/5">View mentor</Link>
+        {bookingUrl && !isCompleted && !isCancelled && <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold">Open booking <ArrowRight size={14} /></a>}
+        {isCompleted && onReview && <button type="button" onClick={onReview} className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold"><MessageCircle size={14} /> Leave feedback</button>}
+      </div>
+    </article>
   );
 }
 
 export default function DashboardPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [signedIn, setSignedIn] = useState(false);
-  const [menteeRow, setMenteeRow] = useState<Row | null>(null);
-  const [mentorRow, setMentorRow] = useState<Row | null>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<Row | null>(null);
+  const [mentee, setMentee] = useState<Row | null>(null);
+  const [mentor, setMentor] = useState<Row | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setSignedIn(false);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
         setCheckingAuth(false);
         setLoading(false);
         return;
       }
-
-      setSignedIn(true);
+      setUser(currentUser);
       setCheckingAuth(false);
 
-      const [menteeResult, mentorResult] = await Promise.all([
-        supabase.from("mentees").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("mentors").select("*").eq("user_id", user.id).maybeSingle(),
+      const [profileResult, menteeResult, mentorResult, bookingResult] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", currentUser.id).maybeSingle(),
+        supabase.from("mentees").select("*").eq("user_id", currentUser.id).maybeSingle(),
+        supabase.from("mentors").select("*").eq("user_id", currentUser.id).maybeSingle(),
+        supabase.from("bookings").select("*").eq("mentee_user_id", currentUser.id).order("created_at", { ascending: false }),
       ]);
 
-      setMenteeRow(menteeResult.data ?? null);
-      setMentorRow(mentorResult.data ?? null);
+      setProfile(profileResult.data ?? null);
+      setMentee(menteeResult.data ?? null);
+      setMentor(mentorResult.data ?? null);
+      if (bookingResult.error) {
+        console.error(bookingResult.error);
+        setError("We couldn't load your conversations right now. Please refresh.");
+      } else {
+        const raw = (bookingResult.data || []) as Booking[];
+        const mentorIds = Array.from(new Set(raw.map((item) => item.mentor_id).filter(Boolean)));
+        if (mentorIds.length) {
+          const { data: mentorRows } = await supabase.from("mentors_public").select("id,name,headline,photo_url,verification_status").in("id", mentorIds);
+          const byId = new Map((mentorRows || []).map((row: Row) => [row.id, row]));
+          setBookings(raw.map((item) => ({ ...item, mentor: byId.get(item.mentor_id) || null })));
+        } else setBookings(raw);
+      }
       setLoading(false);
     }
-
     load();
   }, []);
 
-  if (checkingAuth || loading) {
-    return (
-      <main className="min-h-screen bg-paper flex items-center justify-center">
-        <p className="font-mono text-sm text-ink/50">Loading…</p>
-      </main>
-    );
-  }
+  const active = useMemo(() => bookings.filter((item) => ["requested", "confirmed"].includes(item.status)), [bookings]);
+  const completed = useMemo(() => bookings.filter((item) => item.status === "completed"), [bookings]);
+  const hasRole = Boolean(mentee || mentor);
 
-  if (!signedIn) {
-    return (
-      <main className="min-h-screen bg-paper flex items-center justify-center px-6">
-        <div className="bg-white border border-ink/10 rounded-sm p-8 pin-shadow text-center max-w-sm">
-          <p className="font-body text-ink/70 mb-5">Sign in to see your submissions.</p>
-          <Link
-            href="/auth"
-            className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold px-6 py-3 hover:brightness-95 transition"
-          >
-            Sign in
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  if (checkingAuth || loading) return <main className="min-h-screen bg-paper flex items-center justify-center"><p className="font-mono text-sm text-ink/50">Loading your next step…</p></main>;
 
-  const hasNothing = !menteeRow && !mentorRow;
+  if (!user) return <main className="min-h-screen bg-paper flex items-center justify-center px-6"><div className="max-w-sm rounded-sm border border-ink/10 bg-white p-8 text-center pin-shadow"><p className="text-ink/70">Sign in to view your dashboard.</p><Link href="/auth?next=/dashboard" className="mt-5 inline-flex rounded-sm bg-amber px-6 py-3 font-semibold">Sign in</Link></div></main>;
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <div className="mx-auto max-w-2xl px-6 py-16 sm:py-24">
-        <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">
-          ← Back to AglaKadam
-        </Link>
-
-        <h1 className="font-display text-3xl sm:text-4xl mt-6 mb-2">Your submissions</h1>
-        <p className="text-ink/70 mb-10">
-          Whatever you've submitted to AglaKadam, in one place.
-        </p>
-
-        {hasNothing && (
-          <div className="bg-white rounded-sm border border-ink/10 p-8 pin-shadow text-center">
-            <p className="font-body text-ink/70 mb-5">
-              You haven't submitted anything yet.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link
-                href="/mentee"
-                className="inline-flex items-center justify-center rounded-sm bg-amber text-ink font-body font-semibold text-sm px-5 py-2.5 hover:brightness-95 transition"
-              >
-                Find a mentor
-              </Link>
-              <Link
-                href="/mentor"
-                className="inline-flex items-center justify-center rounded-sm border border-ink/20 text-ink font-body text-sm px-5 py-2.5 hover:bg-ink/5 transition"
-              >
-                Offer to mentor
-              </Link>
+      <header className="border-b border-ink/10 bg-white">
+        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+          <Link href="/" className="font-mono text-xs uppercase tracking-[0.15em] text-board/60 hover:text-board">← AglaKadam</Link>
+          <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-board/60">Your space</p>
+              <h1 className="mt-2 font-display text-4xl sm:text-5xl">Welcome{profile?.name ? `, ${String(profile.name).split(" ")[0]}` : " back"}.</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/60 sm:text-base">Keep your profile, mentoring path and conversations in one place.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/mentors" className="inline-flex items-center gap-2 rounded-sm border border-ink/15 px-4 py-2.5 text-sm font-semibold hover:bg-ink/5">Find a mentor <ArrowRight size={14} /></Link>
+              <Link href="/ai-history" className="inline-flex items-center gap-2 rounded-sm border border-board/15 bg-board/[0.035] px-4 py-2.5 text-sm font-semibold text-board">AI history</Link>
             </div>
           </div>
-        )}
+        </div>
+      </header>
 
-        <div className="space-y-6">
-          {menteeRow && (
-            <ProfileCard
-              title="Mentee profile"
-              row={menteeRow}
-              statusBadge={
-                menteeRow.is_active === false
-                  ? { label: "Inactive", positive: false }
-                  : { label: "Active", positive: true }
-              }
-            />
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="space-y-7">
+          <ProfileSummary profile={profile} />
+
+          {!hasRole && (
+            <section className="rounded-sm border border-board/15 bg-board/[0.035] p-7 sm:p-8">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">One more step</p>
+              <h2 className="mt-2 font-display text-2xl sm:text-3xl">Choose how AglaKadam can help.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">Tell us whether you're looking for guidance, offering your experience, or both.</p>
+              <Link href="/onboarding" className="mt-5 inline-flex items-center gap-2 rounded-sm bg-amber px-5 py-3 text-sm font-semibold">Choose your path <ArrowRight size={15} /></Link>
+            </section>
           )}
 
-          {mentorRow && (
-            <ProfileCard
-              title="Mentor profile"
-              row={mentorRow}
-              statusBadge={
-                mentorRow.is_approved
-                  ? { label: "Approved", positive: true }
-                  : { label: "Pending review", positive: false }
-              }
-            />
-          )}
+          {error && <div className="rounded-sm border border-red-200 bg-white p-4 text-sm text-red-700" role="alert">{error}</div>}
+
+          <section>
+            <div className="mb-5 flex items-end justify-between border-b border-ink/10 pb-4">
+              <div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">Your conversations</p><h2 className="mt-2 font-display text-2xl sm:text-3xl">Next conversation</h2></div>
+              {active.length > 0 && <span className="rounded-full bg-board/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide text-board">{active.length} active</span>}
+            </div>
+            {active.length ? <div className="space-y-5">{active.map((booking) => <BookingCard key={booking.id} booking={booking} />)}</div> : <div className="rounded-sm border border-dashed border-ink/15 bg-white p-8"><p className="font-display text-xl">No upcoming conversation yet.</p><p className="mt-2 max-w-xl text-sm leading-6 text-ink/55">Find someone who has navigated a similar problem, or start with an AI mentor if you need help figuring out what to ask.</p><div className="mt-5 flex flex-wrap gap-2"><Link href="/find-mentor" className="inline-flex items-center gap-2 rounded-sm bg-amber px-5 py-2.5 text-sm font-semibold">Help me find one <ArrowRight size={14} /></Link><Link href="/mentors" className="inline-flex items-center rounded-sm border border-ink/15 px-5 py-2.5 text-sm font-semibold hover:bg-ink/5">Browse mentors</Link></div></div>}
+          </section>
+
+          {completed.length > 0 && <section><div className="mb-5 border-b border-ink/10 pb-4"><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">Your history</p><h2 className="mt-2 font-display text-2xl">Completed conversations</h2></div><div className="space-y-5">{completed.map((booking) => <BookingCard key={booking.id} booking={booking} onReview={() => window.location.href = `/review?booking=${booking.id}`} />)}</div></section>}
+
+          <section className="grid gap-4 sm:grid-cols-3">
+            <Link href="/ai-mentor" className="rounded-sm border border-ink/10 bg-white p-5 hover:border-board/20"><Sparkles size={18} className="text-board" /><h3 className="mt-4 font-semibold">Talk to AI Mentor</h3><p className="mt-1 text-sm text-ink/55">Work through a question before your next move.</p></Link>
+            <Link href="/articles" className="rounded-sm border border-ink/10 bg-white p-5 hover:border-board/20"><MessageCircle size={18} className="text-board" /><h3 className="mt-4 font-semibold">Read a guide</h3><p className="mt-1 text-sm text-ink/55">Practical ideas for decisions between chapters.</p></Link>
+            <Link href="/mentor" className="rounded-sm border border-ink/10 bg-white p-5 hover:border-board/20"><CheckCircle2 size={18} className="text-board" /><h3 className="mt-4 font-semibold">Offer to mentor</h3><p className="mt-1 text-sm text-ink/55">Share experience when you're ready to help someone else.</p></Link>
+          </section>
         </div>
       </div>
     </main>
