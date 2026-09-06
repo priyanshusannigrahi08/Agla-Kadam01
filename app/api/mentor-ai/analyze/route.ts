@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -73,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     const model = "gemini-flash-latest";
     const prompt = `You are the evidence-review assistant for AglaKadam. Review the attached mentor documents alongside the mentor's self-reported profile. Do not decide whether a person is truthful or fraudulent. Instead, identify evidence-supported facts, missing evidence, and consistency questions that an admin should review. Never infer sensitive traits. Do not treat a resume or certificate as proof of identity. Return ONLY valid JSON with this shape: {"extracted_profile":{"headline":"","roles":[],"industries":[],"skills":[],"certifications":[],"years_experience":null},"consistency_checks":[{"field":"","severity":"low|medium|high","finding":""}],"readiness_score":0,"strengths":[],"improvements":[]}. Score mentoring readiness, not personal worth: consider clarity of experience, evidence of relevant expertise, coherent career story, useful skills/certifications, and how well the profile explains what the mentor can help with. The score is advisory for admin review. Resume/profile: ${JSON.stringify({ name: mentor.name, expertise: mentor.expertise, experience: mentor.experience, journey: mentor.journey, why_mentor: mentor.why_mentor, linkedin: mentor.linkedin })}`;
-
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY.trim())}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system_instruction: { parts: [{ text: "Be conservative, factual and privacy-aware. Distinguish documented facts from claims. Do not make hiring, identity, legal or fraud determinations." }] }, contents: [{ role: "user", parts: [{ text: prompt }, ...fileParts] }] }) });
     const data = await response.json();
     if (!response.ok) { console.error("Gemini mentor analysis error", data); return NextResponse.json({ error: "The AI review could not be completed right now." }, { status: 502 }); }
