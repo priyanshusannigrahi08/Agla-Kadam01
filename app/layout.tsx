@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import JourneyLauncher from "@/components/JourneyLauncher";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}>
         {children}
+        <JourneyLauncher />
       </body>
     </html>
   );
