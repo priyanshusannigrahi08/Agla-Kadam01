@@ -1,5 +1,5 @@
 export type MentorSearchProfile = {
-  id?: string;
+  id: string;
   name: string;
   headline?: string;
   bio?: string;
