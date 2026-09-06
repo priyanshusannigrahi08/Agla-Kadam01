@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, MapPin, ShieldCheck, Star } from "lucide-react";
+import MentorStory from "@/components/MentorStory";
 
-type Mentor = { id: string; name: string; headline?: string; bio?: string; expertise?: string; experience?: string; company?: string; role?: string; location?: string; availability?: string; linkedin?: string; linkedin_url?: string; calendly?: string; calendly_url?: string; photo_url?: string; verification_status?: string };
+type Mentor = { id: string; name: string; headline?: string; bio?: string; expertise?: string; experience?: string; company?: string; role?: string; location?: string; availability?: string; linkedin?: string; linkedin_url?: string; calendly?: string; calendly_url?: string; photo_url?: string; verification_status?: string; journey?: string; why_mentor?: string };
 type Review = { rating: number; reviewer_name: string; comment?: string | null; created_at: string };
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+const supabase = require("@/lib/supabaseClient").supabase;
 
 function safeHttpsUrl(value?: string | null) {
   if (!value) return null;
@@ -55,6 +55,8 @@ export default function MentorProfilePage() {
           <div className="rounded-sm border border-ink/10 bg-white p-5"><div className="flex items-center gap-2 text-board"><CalendarDays size={17}/><span className="font-mono text-[10px] uppercase tracking-[0.14em]">Session</span></div><p className="mt-3 text-sm font-semibold">30 minutes</p><p className="mt-1 text-xs leading-relaxed text-ink/50">One focused conversation around your question.</p></div>
           <div className="rounded-sm border border-ink/10 bg-white p-5"><div className="flex items-center gap-2 text-board"><ShieldCheck size={17}/><span className="font-mono text-[10px] uppercase tracking-[0.14em]">Trust</span></div><p className="mt-3 text-sm font-semibold">{mentor.verification_status === "verified" ? "Profile verified" : "Profile reviewed"}</p><p className="mt-1 text-xs leading-relaxed text-ink/50">Verification is shown transparently; professional claims remain the mentor's responsibility.</p></div>
         </section>
+
+        <MentorStory name={mentor.name} journey={mentor.journey} whyMentor={mentor.why_mentor} />
 
         <section className="rounded-sm border border-ink/10 bg-white p-6 sm:p-8"><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">About this mentor</p><h2 className="mt-3 font-display text-2xl sm:text-3xl">What I can help you with</h2><p className="mt-4 whitespace-pre-line text-sm leading-7 text-ink/70">{mentor.bio || "Practical guidance for your next step."}</p>{tags.length > 0 && <div className="mt-7"><p className="font-mono text-xs uppercase tracking-[0.15em] text-board/60">Areas of guidance</p><div className="mt-3 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-board/10 px-3 py-1.5 text-xs text-board">{tag}</span>)}</div></div>}</section>
 
