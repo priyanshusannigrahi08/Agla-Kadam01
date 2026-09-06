@@ -33,6 +33,7 @@ function jsonError(message: string, status: number) {
 }
 
 type AdminUpdate = Record<string, string>;
+type MentorIdRow = { id: string };
 
 export async function GET(request: NextRequest) {
   const user = await getAdminUser(request);
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
     return jsonError("Admin database error while loading bookings. Run the current Supabase migrations.", 500);
   }
 
-  const mentorIds = (mentors || []).map((mentor) => mentor.id);
+  const mentorIds = ((mentors || []) as MentorIdRow[]).map((mentor) => mentor.id);
   let documents: unknown[] = [];
   let assessments: unknown[] = [];
   if (mentorIds.length > 0) {
@@ -83,68 +84,66 @@ export async function GET(request: NextRequest) {
     ]);
     if (documentsError) {
       console.error("Admin mentor evidence query error", documentsError);
-      return jsonError("Mentor evidence migration is missing. Run supabase/mentor_ai_evidence.sql.", 500);
+      return jsonError("Admin database error while loading mentor documents. Run the current mentor AI evidence migration.", 500);
     }
     if (assessmentsError) {
-      console.error("Admin AI assessment query error", assessmentsError);
-      return jsonError("Mentor AI assessment migration is missing. Run supabase/mentor_ai_evidence.sql.", 500);
+      console.error("Admin mentor AI assessment query error", assessmentsError);
+      return jsonError("Admin database error while loading mentor AI assessments. Run the current mentor AI evidence migration.", 500);
     }
     documents = (documentRows || []) as unknown[];
     assessments = (assessmentRows || []) as unknown[];
   }
 
-  return NextResponse.json({
-    admin: { email: user.email },
-    mentors: mentors || [],
-    reviews: reviews || [],
-    bookings: bookings || [],
-    mentorDocuments: documents,
-    mentorAssessments: assessments,
-  });
+  return NextResponse.json({ mentors: mentors || [], reviews: reviews || [], bookings: bookings || [], documents, assessments });
 }
 
 export async function PATCH(request: NextRequest) {
   const user = await getAdminUser(request);
   if (!user) return jsonError("Admin access required.", 403);
 
-  let body: { resource?: unknown; id?: unknown; status?: unknown; verification_status?: unknown };
+  let admin: ReturnType<typeof getSupabaseAdmin>;
   try {
-    body = await request.json();
+    admin = getSupabaseAdmin();
+  } catch (error) {
+    console.error("Admin Supabase configuration error", error);
+    return jsonError("Admin server configuration is incomplete. Check the Supabase server key in Vercel.", 500);
+  }
+
+  let body: AdminUpdate;
+  try {
+    body = (await request.json()) as AdminUpdate;
   } catch {
     return jsonError("Invalid request body.", 400);
   }
 
-  const resource = body.resource;
-  const id = typeof body.id === "string" ? body.id : "";
-  const status = typeof body.status === "string" ? body.status : "";
-  if (!id) return jsonError("A record id is required.", 400);
+  const { entity, id, status, verification_status } = body;
+  if (!entity || !id) return jsonError("Entity and id are required.", 400);
 
-  const admin = getSupabaseAdmin();
-
-  if (resource === "mentor") {
-    if (!["pending", "approved", "paused"].includes(status)) return jsonError("Invalid mentor status.", 400);
-    const verification = typeof body.verification_status === "string" ? body.verification_status : undefined;
-    if (verification !== undefined && !["pending", "verified", "unverified"].includes(verification)) return jsonError("Invalid verification status.", 400);
-    const update: AdminUpdate = { status };
-    if (verification !== undefined) update.verification_status = verification;
-    const { error } = await admin.from("mentors").update(update as never).eq("id", id);
-    if (error) return jsonError("Couldn't update mentor.", 500);
+  if (entity === "mentor") {
+    if (verification_status && ["unverified", "pending", "verified", "rejected"].includes(verification_status)) {
+      const { error } = await admin.from("mentors").update({ verification_status }).eq("id", id);
+      if (error) return jsonError("Could not update mentor verification.", 500);
+      return NextResponse.json({ ok: true });
+    }
+    if (!status || !["pending", "approved", "rejected"].includes(status)) return jsonError("Invalid mentor status.", 400);
+    const { error } = await admin.from("mentors").update({ status }).eq("id", id);
+    if (error) return jsonError("Could not update mentor status.", 500);
     return NextResponse.json({ ok: true });
   }
 
-  if (resource === "review") {
-    if (!["pending", "published", "rejected"].includes(status)) return jsonError("Invalid review status.", 400);
-    const { error } = await admin.from("reviews").update({ status } as never).eq("id", id);
-    if (error) return jsonError("Couldn't update review.", 500);
+  if (entity === "review") {
+    if (!status || !["pending", "published", "rejected"].includes(status)) return jsonError("Invalid review status.", 400);
+    const { error } = await admin.from("reviews").update({ status }).eq("id", id);
+    if (error) return jsonError("Could not update review status.", 500);
     return NextResponse.json({ ok: true });
   }
 
-  if (resource === "booking") {
-    if (!["requested", "confirmed", "cancelled", "completed"].includes(status)) return jsonError("Invalid booking status.", 400);
-    const { error } = await admin.from("bookings").update({ status } as never).eq("id", id);
-    if (error) return jsonError("Couldn't update booking.", 500);
+  if (entity === "booking") {
+    if (!status || !["requested", "confirmed", "completed", "cancelled"].includes(status)) return jsonError("Invalid booking status.", 400);
+    const { error } = await admin.from("bookings").update({ status }).eq("id", id);
+    if (error) return jsonError("Could not update booking status.", 500);
     return NextResponse.json({ ok: true });
   }
 
-  return jsonError("Unknown admin resource.", 400);
+  return jsonError("Unknown entity.", 400);
 }
