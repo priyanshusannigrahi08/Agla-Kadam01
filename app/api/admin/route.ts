@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
       console.error("Admin AI assessment query error", assessmentsError);
       return jsonError("Mentor AI assessment migration is missing. Run supabase/mentor_ai_evidence.sql.", 500);
     }
-    documents = documents || [];
-    assessments = assessmentRows || [];
+    documents = (documentRows || []) as unknown[];
+    assessments = (assessmentRows || []) as unknown[];
   }
 
   return NextResponse.json({
