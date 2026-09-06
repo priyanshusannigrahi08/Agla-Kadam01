@@ -21,7 +21,7 @@ export default function NextStepPage() {
 
     const [goalResult, actionResult, bookingResult] = await Promise.all([
       supabase.from("career_goals").select("id,text,completed,created_at").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
-      supabase.from("conversation_actions").select("id,title,description,completed,created_at,booking_id").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
+      supabase.from("conversation_actions").select("id,action_text,completed,created_at,booking_id").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
       supabase.from("bookings").select("id,mentor_id,status,scheduled_for").eq("mentee_user_id", user.id).in("status", ["requested", "confirmed"]).order("scheduled_for", { ascending: true, nullsFirst: false }).limit(1),
     ]);
 
@@ -29,10 +29,20 @@ export default function NextStepPage() {
     if (goal) { setItem({ kind: "goal", id: goal.id, title: goal.text, detail: "Your active career goal. Keep it small enough to act on today.", href: "/goals" }); setLoading(false); return; }
 
     const action = (actionResult.data || [])[0] as Row | undefined;
-    if (action) { setItem({ kind: "action", id: action.id, title: action.title, detail: action.description || "An unfinished action from a mentoring conversation.", href: action.booking_id ? `/conversation/${action.booking_id}` : "/progress" }); setLoading(false); return; }
+    if (action) {
+      setItem({ kind: "action", id: action.id, title: action.action_text || "Finish an action from your mentoring conversation", detail: "An unfinished action from a mentoring conversation.", href: action.booking_id ? `/conversation/${action.booking_id}` : "/progress" });
+      setLoading(false);
+      return;
+    }
 
     const booking = (bookingResult.data || [])[0] as Row | undefined;
-    if (booking) { setItem({ kind: "conversation", id: booking.id, title: "Prepare for your next mentor conversation", detail: booking.scheduled_for ? `Your next conversation is ${new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(booking.scheduled_for))}.` : "Your mentor conversation is active. Bring one decision and one question.", href: `/book/${booking.mentor_id}` }); }
+    if (booking) {
+      const date = booking.scheduled_for ? new Date(booking.scheduled_for) : null;
+      const detail = date && !Number.isNaN(date.getTime())
+        ? `Your next conversation is ${new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(date)}.`
+        : "Your mentor conversation is active. Bring one decision and one question.";
+      setItem({ kind: "conversation", id: booking.id, title: "Prepare for your next mentor conversation", detail, href: `/book/${booking.mentor_id}` });
+    }
     setLoading(false);
   }
 
