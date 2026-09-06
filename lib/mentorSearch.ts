@@ -9,6 +9,13 @@ export type MentorSearchProfile = {
   location?: string;
   availability?: string;
   verification_status?: string;
+  intelligence?: {
+    skills?: string[];
+    roles?: string[];
+    industries?: string[];
+    certifications?: string[];
+    ai_profile_available?: boolean;
+  };
 };
 
 const STOP_WORDS = new Set([
@@ -43,6 +50,17 @@ function phraseMatches(query: string, profile: string) {
   return score;
 }
 
+function intelligenceText(mentor: MentorSearchProfile) {
+  const intelligence = mentor.intelligence;
+  if (!intelligence) return "";
+  return [
+    ...(intelligence.skills || []),
+    ...(intelligence.roles || []),
+    ...(intelligence.industries || []),
+    ...(intelligence.certifications || []),
+  ].join(" ");
+}
+
 export function mentorSearchScore(query: string, mentor: MentorSearchProfile) {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return 0;
@@ -56,15 +74,23 @@ export function mentorSearchScore(query: string, mentor: MentorSearchProfile) {
     mentor.role,
     mentor.location,
   ].filter(Boolean).join(" "));
+  const aiProfile = normalize(intelligenceText(mentor));
   const queryTerms = terms(normalizedQuery);
   const profileTerms = terms(profile);
+  const aiTerms = terms(aiProfile);
   let overlap = 0;
-  queryTerms.forEach((term) => { if (profileTerms.has(term) || profile.includes(term)) overlap += 1; });
+  let aiOverlap = 0;
+  queryTerms.forEach((term) => {
+    if (profileTerms.has(term) || profile.includes(term)) overlap += 1;
+    if (aiTerms.has(term) || aiProfile.includes(term)) aiOverlap += 1;
+  });
 
-  let score = Math.min(65, overlap * 13);
-  score += Math.min(20, phraseMatches(normalizedQuery, profile));
-  if (mentor.expertise && normalizedQuery.split(" ").some((term) => normalize(mentor.expertise!).includes(term))) score += 8;
+  let score = Math.min(58, overlap * 11);
+  score += Math.min(18, aiOverlap * 6);
+  score += Math.min(20, phraseMatches(normalizedQuery, profile + " " + aiProfile));
+  if (mentor.expertise && normalizedQuery.split(" ").some((term) => normalize(mentor.expertise!).includes(term))) score += 7;
   if (mentor.role && normalizedQuery.split(" ").some((term) => normalize(mentor.role!).includes(term))) score += 5;
+  if (mentor.intelligence?.ai_profile_available && aiOverlap > 0) score += 3;
   if (mentor.verification_status === "verified") score += 2;
   if (mentor.availability) score += 1;
   return Math.min(100, score);
