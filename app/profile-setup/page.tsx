@@ -50,9 +50,12 @@ export default function ProfileSetupPage() {
     if (phone && !/^[+0-9()\-\s]{7,20}$/.test(phone)) { setError("Please enter a valid phone number."); setSaving(false); return; }
     if (city.length > 100 || occupation.length > 120 || bio.length > 500) { setError("One of the optional fields is too long."); setSaving(false); return; }
     const { error: saveError } = await supabase.from("profiles").upsert({ id: userId, full_name, age, phone: phone || null, city: city || null, occupation: occupation || null, bio: bio || null }, { onConflict: "id" });
-    if (saveError) setError("We couldn't save your profile. If you just installed this feature, run supabase/basic_profiles.sql in Supabase first.");
-    else window.location.replace("/dashboard");
-    setSaving(false);
+    if (saveError) {
+      setError("We couldn't save your profile. If you just installed this feature, run supabase/basic_profiles.sql in Supabase first.");
+      setSaving(false);
+      return;
+    }
+    window.location.replace("/onboarding");
   }
 
   if (loading) return <main className="min-h-screen bg-paper flex items-center justify-center"><p className="font-mono text-sm text-ink/50">Loading your profile…</p></main>;
