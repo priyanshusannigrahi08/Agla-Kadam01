@@ -19,20 +19,22 @@ export default function DashboardNextStep() {
 
       const [goalResult, actionResult, bookingResult] = await Promise.all([
         supabase.from("career_goals").select("id,text,completed,created_at").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
-        supabase.from("conversation_actions").select("id,title,description,completed,created_at,booking_id").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
+        supabase.from("conversation_actions").select("id,action_text,completed,created_at,booking_id").eq("user_id", user.id).eq("completed", false).order("created_at", { ascending: false }).limit(1),
         supabase.from("bookings").select("id,mentor_id,status,scheduled_for").eq("mentee_user_id", user.id).in("status", ["requested", "confirmed"]).order("scheduled_for", { ascending: true, nullsFirst: false }).limit(1),
       ]);
 
       const goal = (goalResult.data || [])[0] as Row | undefined;
       if (goal) {
         setItem({ kind: "goal", text: goal.text, detail: "Your active career goal. Turn it into one small action today.", href: "/goals" });
-        setLoading(false); return;
+        setLoading(false);
+        return;
       }
 
       const action = (actionResult.data || [])[0] as Row | undefined;
       if (action) {
-        setItem({ kind: "action", text: action.title, detail: action.description || "An unfinished action from a mentoring conversation.", href: action.booking_id ? `/conversation/${action.booking_id}` : "/progress" });
-        setLoading(false); return;
+        setItem({ kind: "action", text: action.action_text || "Finish an action from your mentoring conversation", detail: "An unfinished action from a mentoring conversation.", href: action.booking_id ? `/conversation/${action.booking_id}` : "/progress" });
+        setLoading(false);
+        return;
       }
 
       const booking = (bookingResult.data || [])[0] as Row | undefined;
