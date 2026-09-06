@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { ArrowRight, CheckCircle2, Search, ShieldCheck, SlidersHorizontal, Star, Users, X, Clock3, MessageCircle } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Search, ShieldCheck, SlidersHorizontal, Star, Users, X, Clock3, MessageCircle } from "lucide-react";
 import { virtualMentors } from "@/app/data/virtualMentors";
 import { mentorSearchScore, rankMentors } from "@/lib/mentorSearch";
 
