@@ -52,6 +52,22 @@ export default function ProgressSnapshot() {
         </div>
       </div>
 
+      <div className="mt-6 rounded-sm border border-ink/10 bg-board p-4 text-chalk sm:p-5">
+        <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-amber">The AglaKadam loop</p>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Problem</span>
+          <span className="text-chalk/35">→</span>
+          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Mentor</span>
+          <span className="text-chalk/35">→</span>
+          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Conversation</span>
+          <span className="text-chalk/35">→</span>
+          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Action</span>
+          <span className="text-chalk/35">→</span>
+          <span className="rounded-full border border-amber/40 px-3 py-1.5 text-amber">Next step</span>
+        </div>
+        <p className="mt-4 max-w-2xl text-xs leading-5 text-chalk/55">You do not need the whole path figured out. One useful conversation can create the next experiment.</p>
+      </div>
+
       <p className="mt-5 text-xs leading-5 text-ink/45">Progress is a record of what you have done, not a score of where you should be.</p>
     </section>
   );
