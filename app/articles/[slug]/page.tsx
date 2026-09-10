@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Clock3, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -59,7 +60,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               <p className="mt-6 max-w-2xl text-base leading-7 text-ink/65 sm:text-lg">{article.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-4 text-xs text-ink/50"><span className="font-semibold text-ink">{article.author}</span><span>{article.role}</span><span className="inline-flex items-center gap-1.5"><Clock3 size={14} /> {article.readTime}</span></div>
             </div>
-            <div className="overflow-hidden rounded-sm border border-ink/10 bg-white shadow-sm"><img src={article.image} alt={article.title} className="aspect-[1.25/1] w-full object-cover" /></div>
+            <div className="relative aspect-[1.25/1] overflow-hidden rounded-sm border border-ink/10 bg-white shadow-sm"><Image src={article.image} alt={article.title} fill sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" /></div>
           </div>
         </div>
 
@@ -89,7 +90,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
       <section className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-18">
         <div className="flex items-end justify-between gap-5"><div><p className="font-mono text-xs uppercase tracking-[0.16em] text-board/60">Keep reading</p><h2 className="mt-2 font-display text-3xl">More useful perspectives</h2></div><Link href="/articles" className="hidden items-center gap-1 text-sm font-semibold text-board sm:inline-flex">All articles <ArrowRight size={15} /></Link></div>
-        <div className="mt-7 grid gap-5 sm:grid-cols-2">{recommendations.map((item) => <Link key={item.slug} href={`/articles/${item.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"><img src={item.image} alt={item.title} className="aspect-[1.7/1] w-full object-cover transition duration-500 group-hover:scale-[1.02]" /><div className="p-5"><p className="font-mono text-[10px] tracking-[0.16em] text-board">{item.category}</p><h3 className="mt-2 font-display text-xl leading-tight">{item.title}</h3><p className="mt-2 text-sm leading-6 text-ink/60">{item.excerpt}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-board">Read article <ArrowRight size={14} /></span></div></Link>)}</div>
+        <div className="mt-7 grid gap-5 sm:grid-cols-2">{recommendations.map((item) => <Link key={item.slug} href={`/articles/${item.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"><div className="relative aspect-[1.7/1] overflow-hidden"><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" /></div><div className="p-5"><p className="font-mono text-[10px] tracking-[0.16em] text-board">{item.category}</p><h3 className="mt-2 font-display text-xl leading-tight">{item.title}</h3><p className="mt-2 text-sm leading-6 text-ink/60">{item.excerpt}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-board">Read article <ArrowRight size={14} /></span></div></Link>)}</div>
       </section>
 
       <SiteFooter />
