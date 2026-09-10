@@ -49,15 +49,32 @@ export async function GET(request: NextRequest) {
     return jsonError("Admin server configuration is incomplete. Check the Supabase server key in Vercel.", 500);
   }
 
-  const [{ data: mentors, error: mentorsError }, { data: reviews, error: reviewsError }, { data: bookings, error: bookingsError }] = await Promise.all([
+  const [
+    { data: mentors, error: mentorsError },
+    { data: reviews, error: reviewsError },
+    { data: bookings, error: bookingsError },
+    { data: mentees, error: menteesError },
+    { count: careerGoalsCount, error: careerGoalsError },
+    { count: aiConversationsCount, error: aiConversationsError },
+    { count: conversationActionsCount, error: conversationActionsError },
+  ] = await Promise.all([
     admin.from("mentors").select("*").order("created_at", { ascending: false }),
     admin.from("reviews").select("*").order("created_at", { ascending: false }),
     admin.from("bookings").select("*").order("created_at", { ascending: false }),
+    admin.from("mentees").select("*").order("created_at", { ascending: false }),
+    admin.from("career_goals").select("*", { count: "exact", head: true }),
+    admin.from("ai_conversations").select("*", { count: "exact", head: true }),
+    admin.from("conversation_actions").select("*", { count: "exact", head: true }),
   ]);
 
-  if (mentorsError || reviewsError || bookingsError) {
-    console.error("Admin data query error", mentorsError || reviewsError || bookingsError);
+  if (mentorsError || reviewsError || bookingsError || menteesError) {
+    console.error("Admin data query error", mentorsError || reviewsError || bookingsError || menteesError);
     return jsonError("Could not load admin data.", 500);
+  }
+
+  if (careerGoalsError || aiConversationsError || conversationActionsError) {
+    console.error("Admin other-data count query error", careerGoalsError || aiConversationsError || conversationActionsError);
+    return jsonError("Could not load other data counts.", 500);
   }
 
   const mentorIds = ((mentors || []) as MentorIdRow[]).map((mentor) => mentor.id);
@@ -83,8 +100,14 @@ export async function GET(request: NextRequest) {
     mentors: mentors || [],
     reviews: reviews || [],
     bookings: bookings || [],
+    mentees: mentees || [],
     mentorDocuments,
     mentorAssessments,
+    otherCounts: {
+      career_goals: careerGoalsCount || 0,
+      ai_conversations: aiConversationsCount || 0,
+      conversation_actions: conversationActionsCount || 0,
+    },
     admin: { email: adminUser.email },
   });
 }
@@ -108,8 +131,6 @@ export async function PATCH(request: NextRequest) {
     return jsonError("Invalid request body.", 400);
   }
 
-  // The admin UI historically sent `resource`; the API contract uses `entity`.
-  // Accept both so older deployed clients cannot silently fail to update records.
   const entity = body.entity || body.resource;
   const { id, status, verification_status } = body;
   if (!entity || !id) return jsonError("Entity and id are required.", 400);
@@ -137,6 +158,13 @@ export async function PATCH(request: NextRequest) {
     if (!status || !["requested", "confirmed", "completed", "cancelled"].includes(status)) return jsonError("Invalid booking status.", 400);
     const { error } = await (admin.from("bookings") as any).update({ status }).eq("id", id);
     if (error) return jsonError("Could not update booking status.", 500);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (entity === "mentee") {
+    if (!status || !["unmatched", "matched", "called"].includes(status)) return jsonError("Invalid mentee status.", 400);
+    const { error } = await (admin.from("mentees") as any).update({ status }).eq("id", id);
+    if (error) return jsonError("Could not update mentee status.", 500);
     return NextResponse.json({ ok: true });
   }
 
