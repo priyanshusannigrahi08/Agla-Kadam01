@@ -6,7 +6,11 @@ export const runtime = "nodejs";
 
 const MAX_FILES = 6;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_BODY_BYTES = 55 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 5;
+const limits = new Map<string, { count: number; resetAt: number }>();
 
 type DocumentRow = { id: string; mentor_id: string; user_id: string; document_type: string; file_name: string; storage_path: string; mime_type: string; file_size: number };
 
@@ -38,15 +42,43 @@ function normalizeAssessment(value: any, model: string) {
   };
 }
 
+function clientKey(request: NextRequest, userId: string) {
+  return `${userId}:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"}`;
+}
+
+function isRateLimited(key: string) {
+  const now = Date.now();
+  const current = limits.get(key);
+  if (!current || current.resetAt <= now) {
+    limits.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  if (current.count >= RATE_MAX) return true;
+  current.count += 1;
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization") || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: "Your session is no longer valid." }, { status: 401 });
+    if (isRateLimited(clientKey(request, user.id))) return NextResponse.json({ error: "Too many evidence analyses. Please wait a minute and try again." }, { status: 429 });
 
-    const body = await request.json();
+    const contentLength = request.headers.get("content-length");
+    if (contentLength) {
+      const bytes = Number(contentLength);
+      if (!Number.isFinite(bytes) || bytes < 0 || bytes > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+
+    let body: any;
+    try { body = JSON.parse(rawBody); } catch { return NextResponse.json({ error: "Invalid request body." }, { status: 400 }); }
+
     const mentorId = String(body?.mentorId || "");
     if (!mentorId) return NextResponse.json({ error: "Mentor profile is required." }, { status: 400 });
 
@@ -72,9 +104,15 @@ export async function POST(request: NextRequest) {
 
     const model = "gemini-flash-latest";
     const prompt = `You are the evidence-review assistant for AglaKadam. Review the attached mentor documents alongside the mentor's self-reported profile. Do not decide whether a person is truthful or fraudulent. Instead, identify evidence-supported facts, missing evidence, and consistency questions that an admin should review. Never infer sensitive traits. Do not treat a resume or certificate as proof of identity. Return ONLY valid JSON with this shape: {"extracted_profile":{"headline":"","roles":[],"industries":[],"skills":[],"certifications":[],"years_experience":null},"consistency_checks":[{"field":"","severity":"low|medium|high","finding":""}],"readiness_score":0,"strengths":[],"improvements":[]}. Score mentoring readiness, not personal worth: consider clarity of experience, evidence of relevant expertise, coherent career story, useful skills/certifications, and how well the profile explains what the mentor can help with. The score is advisory for admin review. Resume/profile: ${JSON.stringify({ name: mentor.name, expertise: mentor.expertise, experience: mentor.experience, journey: mentor.journey, why_mentor: mentor.why_mentor, linkedin: mentor.linkedin })}`;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY.trim())}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system_instruction: { parts: [{ text: "Be conservative, factual and privacy-aware. Distinguish documented facts from claims. Do not make hiring, identity, legal or fraud determinations." }] }, contents: [{ role: "user", parts: [{ text: prompt }, ...fileParts] }] }) });
+    const apiKey = process.env.GEMINI_API_KEY.trim();
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({ system_instruction: { parts: [{ text: "Be conservative, factual and privacy-aware. Distinguish documented facts from claims. Do not make hiring, identity, legal or fraud determinations." }] }, contents: [{ role: "user", parts: [{ text: prompt }, ...fileParts] }] }),
+      signal: AbortSignal.timeout(30000),
+    });
     const data = await response.json();
-    if (!response.ok) { console.error("Gemini mentor analysis error", data); return NextResponse.json({ error: "The AI review could not be completed right now." }, { status: 502 }); }
+    if (!response.ok) { console.error("Gemini mentor analysis error", { status: response.status }); return NextResponse.json({ error: "The AI review could not be completed right now." }, { status: 502 }); }
     const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "";
     const parsed = extractJson(text);
     if (!parsed) return NextResponse.json({ error: "The AI returned an unreadable assessment. Please try again." }, { status: 502 });
