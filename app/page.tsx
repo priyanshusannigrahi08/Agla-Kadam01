@@ -17,8 +17,9 @@ import {
   Users,
 } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
-import AuthButton from "@/components/AuthButton";
 import FeaturedMentors from "@/components/FeaturedMentors";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 const SITUATIONS = [
   { label: "Just left college", query: "left college", icon: GraduationCap },
@@ -59,21 +60,7 @@ const STEPS = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6">
-          <Link href="/" className="font-display text-xl tracking-tight" aria-label="AglaKadam home">AglaKadam</Link>
-          <nav className="hidden items-center gap-7 font-body text-sm text-ink/65 md:flex" aria-label="Main navigation">
-            <Link href="/mentors" className="transition hover:text-ink">Browse mentors</Link>
-            <Link href="/find-mentor" className="transition hover:text-ink">Find a mentor</Link>
-            <Link href="/ai-mentor/arjun-mehta" className="transition hover:text-ink">AI mentor</Link>
-            <Link href="/mentor" className="transition hover:text-ink">Become a mentor</Link>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <AuthButton />
-            <Link href="/find-mentor" className="inline-flex items-center justify-center rounded-sm bg-amber px-4 py-2.5 font-body text-sm font-semibold transition hover:brightness-95 sm:px-5">Get started</Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="relative overflow-hidden bg-board text-chalk">
         <div className="cork-texture absolute inset-0 opacity-40" />
@@ -178,15 +165,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="bg-ink text-chalk/70">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:px-6 sm:grid-cols-4">
-          <div><p className="mb-3 font-display text-lg text-chalk">AglaKadam</p><p className="max-w-xs font-body text-sm leading-relaxed">“Agla kadam” means “next step”. A place to find useful perspective when you’re between chapters.</p></div>
-          <FooterColumn title="For mentees" links={[{ label: "Find a mentor", href: "/find-mentor" }, { label: "Browse mentors", href: "/mentors" }, { label: "Dashboard", href: "/dashboard" }]} />
-          <FooterColumn title="For mentors" links={[{ label: "Become a mentor", href: "/mentor" }, { label: "Dashboard", href: "/dashboard" }]} />
-          <FooterColumn title="More" links={[{ label: "Sign in", href: "/auth" }, { label: "View the source", href: "https://github.com/priyanshusannigrahi08/Agla-Kadam01" }]} />
-        </div>
-        <div className="border-t border-chalk/10"><p className="mx-auto max-w-7xl px-5 py-6 font-mono text-xs text-chalk/40 sm:px-6">AglaKadam — built in the open.</p></div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
@@ -201,8 +180,4 @@ function MiniPoint({ number, title, body }: { number: string; title: string; bod
 
 function TrustCard({ icon: Icon, title, body }: { icon: typeof ShieldCheck; title: string; body: string }) {
   return <div className="rounded-sm border border-ink/10 bg-paper p-6"><Icon size={22} className="text-board" /><h3 className="mt-6 font-display text-xl">{title}</h3><p className="mt-2 text-sm leading-relaxed text-ink/65">{body}</p></div>;
-}
-
-function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
-  return <div><p className="mb-4 font-mono text-xs uppercase tracking-[0.15em] text-chalk/40">{title}</p><ul className="space-y-2">{links.map((link) => <li key={link.href}><Link href={link.href} className="font-body text-sm hover:text-chalk">{link.label}</Link></li>)}</ul></div>;
 }
