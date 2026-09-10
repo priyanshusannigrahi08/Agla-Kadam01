@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Clock3 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -110,11 +111,12 @@ function ArticleCard({ article }: { article: (typeof ARTICLES)[number] }) {
       className="group overflow-hidden rounded-sm border border-ink/10 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
     >
       <div className="relative aspect-[1.55/1] overflow-hidden bg-board/10">
-        <img
+        <Image
           src={article.image}
           alt={article.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-          loading="lazy"
+          fill
+          sizes="(max-width: 640px) 100vw, 50vw"
+          className="object-cover transition duration-500 group-hover:scale-[1.04]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/25 via-transparent to-transparent" />
       </div>
