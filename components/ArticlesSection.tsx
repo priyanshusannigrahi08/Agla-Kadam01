@@ -112,7 +112,7 @@ function ArticleCard({ article }: { article: (typeof ARTICLES)[number] }) {
       <div className="relative aspect-[1.55/1] overflow-hidden bg-board/10">
         <img
           src={article.image}
-          alt=""
+          alt={article.title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
           loading="lazy"
         />
