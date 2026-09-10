@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import JourneyLauncher from "@/components/JourneyLauncher";
+import { Analytics } from "@vercel/analytics/next";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} font-body`}>
         {children}
         <JourneyLauncher />
+        <Analytics />
       </body>
     </html>
   );
