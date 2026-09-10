@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -119,7 +120,7 @@ export default function MenteeSignup() {
                   <Field label="Profile photo" htmlFor="photo" hint="Used to help your mentor put a face to the conversation.">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-board/8 text-xs text-ink/45">
-                        {preview ? <img src={preview} alt="Profile preview" className="h-full w-full object-cover" /> : <span>PHOTO</span>}
+                        {preview ? <Image src={preview} alt="Profile preview" fill sizes="64px" className="object-cover" /> : <span>PHOTO</span>}
                       </div>
                       <label htmlFor="photo" className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-sm border border-ink/15 bg-white px-4 text-sm font-medium transition hover:border-board/35 hover:bg-board/[0.03]">
                         Choose a photo
