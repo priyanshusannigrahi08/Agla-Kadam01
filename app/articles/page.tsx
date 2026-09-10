@@ -2,27 +2,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Clock3 } from "lucide-react";
 import { ARTICLES } from "@/app/data/articles";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Career Insights & Guides | AglaKadam",
+  title: "Career Insights & Guides",
   description: "Practical career, mentorship, skills, higher studies and job-search guidance from AglaKadam.",
+  openGraph: {
+    title: "Career Insights & Guides | AglaKadam",
+    description: "Practical career, mentorship, skills, higher studies and job-search guidance from AglaKadam.",
+    url: "https://agla-kadam.vercel.app/articles",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Career Insights & Guides | AglaKadam",
+    description: "Practical career, mentorship, skills, higher studies and job-search guidance from AglaKadam.",
+  },
 };
 
 export default function ArticlesPage() {
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6">
-          <Link href="/" className="font-display text-xl tracking-tight">AglaKadam</Link>
-          <nav className="hidden items-center gap-7 text-sm text-ink/65 md:flex">
-            <Link href="/mentors" className="hover:text-ink">Browse mentors</Link>
-            <Link href="/find-mentor" className="hover:text-ink">Find a mentor</Link>
-            <Link href="/articles" className="text-ink">Articles</Link>
-            <Link href="/mentor" className="hover:text-ink">Become a mentor</Link>
-          </nav>
-          <Link href="/find-mentor" className="rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold">Find a mentor</Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="border-b border-ink/10 bg-board text-chalk">
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
@@ -36,7 +38,7 @@ export default function ArticlesPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {ARTICLES.map((article) => (
             <Link key={article.slug} href={`/articles/${article.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="overflow-hidden bg-board/10"><img src={article.image} alt="" className="aspect-[1.6/1] w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" /></div>
+              <div className="overflow-hidden bg-board/10"><img src={article.image} alt={article.title} className="aspect-[1.6/1] w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" /></div>
               <div className="p-5 sm:p-6">
                 <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-board">{article.category}</p>
                 <h2 className="mt-3 font-display text-2xl leading-tight">{article.title}</h2>
@@ -48,6 +50,8 @@ export default function ArticlesPage() {
           ))}
         </div>
       </section>
+
+      <SiteFooter />
     </main>
   );
 }
