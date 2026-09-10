@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Clock3, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ARTICLES, getArticle } from "@/app/data/articles";
 import ShareArticleButton from "@/components/ShareArticleButton";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 export function generateStaticParams() {
   return ARTICLES.map((article) => ({ slug: article.slug }));
@@ -12,8 +14,24 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const article = getArticle(slug);
-  if (!article) return { title: "Article not found | AglaKadam" };
-  return { title: `${article.title} | AglaKadam`, description: article.excerpt };
+  if (!article) return { title: "Article not found" };
+  return {
+    title: article.title,
+    description: article.excerpt,
+    openGraph: {
+      title: `${article.title} | AglaKadam`,
+      description: article.excerpt,
+      url: `https://agla-kadam.vercel.app/articles/${article.slug}`,
+      type: "article",
+      images: [{ url: article.image }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${article.title} | AglaKadam`,
+      description: article.excerpt,
+      images: [article.image],
+    },
+  };
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -29,18 +47,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6">
-          <Link href="/" className="font-display text-xl tracking-tight">AglaKadam</Link>
-          <nav className="hidden items-center gap-7 text-sm text-ink/65 md:flex">
-            <Link href="/mentors" className="hover:text-ink">Browse mentors</Link>
-            <Link href="/find-mentor" className="hover:text-ink">Find a mentor</Link>
-            <Link href="/articles" className="text-ink">Articles</Link>
-            <Link href="/mentor" className="hover:text-ink">Become a mentor</Link>
-          </nav>
-          <Link href="/find-mentor" className="rounded-sm bg-amber px-4 py-2.5 text-sm font-semibold">Find a mentor</Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <article>
         <div className="mx-auto max-w-5xl px-5 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
@@ -52,7 +59,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               <p className="mt-6 max-w-2xl text-base leading-7 text-ink/65 sm:text-lg">{article.excerpt}</p>
               <div className="mt-7 flex flex-wrap items-center gap-4 text-xs text-ink/50"><span className="font-semibold text-ink">{article.author}</span><span>{article.role}</span><span className="inline-flex items-center gap-1.5"><Clock3 size={14} /> {article.readTime}</span></div>
             </div>
-            <div className="overflow-hidden rounded-sm border border-ink/10 bg-white shadow-sm"><img src={article.image} alt="" className="aspect-[1.25/1] w-full object-cover" /></div>
+            <div className="overflow-hidden rounded-sm border border-ink/10 bg-white shadow-sm"><img src={article.image} alt={article.title} className="aspect-[1.25/1] w-full object-cover" /></div>
           </div>
         </div>
 
@@ -82,10 +89,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
       <section className="mx-auto max-w-5xl px-5 py-14 sm:px-6 sm:py-18">
         <div className="flex items-end justify-between gap-5"><div><p className="font-mono text-xs uppercase tracking-[0.16em] text-board/60">Keep reading</p><h2 className="mt-2 font-display text-3xl">More useful perspectives</h2></div><Link href="/articles" className="hidden items-center gap-1 text-sm font-semibold text-board sm:inline-flex">All articles <ArrowRight size={15} /></Link></div>
-        <div className="mt-7 grid gap-5 sm:grid-cols-2">{recommendations.map((item) => <Link key={item.slug} href={`/articles/${item.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"><img src={item.image} alt="" className="aspect-[1.7/1] w-full object-cover transition duration-500 group-hover:scale-[1.02]" /><div className="p-5"><p className="font-mono text-[10px] tracking-[0.16em] text-board">{item.category}</p><h3 className="mt-2 font-display text-xl leading-tight">{item.title}</h3><p className="mt-2 text-sm leading-6 text-ink/60">{item.excerpt}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-board">Read article <ArrowRight size={14} /></span></div></Link>)}</div>
+        <div className="mt-7 grid gap-5 sm:grid-cols-2">{recommendations.map((item) => <Link key={item.slug} href={`/articles/${item.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition hover:-translate-y-1 hover:shadow-lg"><img src={item.image} alt={item.title} className="aspect-[1.7/1] w-full object-cover transition duration-500 group-hover:scale-[1.02]" /><div className="p-5"><p className="font-mono text-[10px] tracking-[0.16em] text-board">{item.category}</p><h3 className="mt-2 font-display text-xl leading-tight">{item.title}</h3><p className="mt-2 text-sm leading-6 text-ink/60">{item.excerpt}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-board">Read article <ArrowRight size={14} /></span></div></Link>)}</div>
       </section>
 
-      <footer className="bg-ink text-chalk/70"><div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-10 sm:px-6 sm:flex-row sm:items-center sm:justify-between"><p className="font-display text-lg text-chalk">AglaKadam</p><Link href="/" className="text-sm hover:text-chalk">Back to home</Link></div></footer>
+      <SiteFooter />
     </main>
   );
 }
