@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock3 } from "lucide-react";
 import { ARTICLES } from "@/app/data/articles";
@@ -38,7 +39,7 @@ export default function ArticlesPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {ARTICLES.map((article) => (
             <Link key={article.slug} href={`/articles/${article.slug}`} className="group overflow-hidden rounded-sm border border-ink/10 bg-white transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="overflow-hidden bg-board/10"><img src={article.image} alt={article.title} className="aspect-[1.6/1] w-full object-cover transition duration-500 group-hover:scale-[1.03]" loading="lazy" /></div>
+              <div className="relative aspect-[1.6/1] overflow-hidden bg-board/10"><Image src={article.image} alt={article.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" /></div>
               <div className="p-5 sm:p-6">
                 <p className="font-mono text-[10px] font-semibold tracking-[0.16em] text-board">{article.category}</p>
                 <h2 className="mt-3 font-display text-2xl leading-tight">{article.title}</h2>
