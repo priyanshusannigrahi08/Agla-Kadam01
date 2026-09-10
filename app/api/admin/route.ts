@@ -61,19 +61,32 @@ export async function GET(request: NextRequest) {
   }
 
   const mentorIds = ((mentors || []) as MentorIdRow[]).map((mentor) => mentor.id);
-  let documents: unknown[] = [];
-  let assessments: unknown[] = [];
+  let mentorDocuments: unknown[] = [];
+  let mentorAssessments: unknown[] = [];
 
   if (mentorIds.length > 0) {
-    const [{ data: documentRows }, { data: assessmentRows }] = await Promise.all([
+    const [{ data: documentRows, error: documentsError }, { data: assessmentRows, error: assessmentsError }] = await Promise.all([
       admin.from("mentor_documents").select("*").in("mentor_id", mentorIds).order("created_at", { ascending: false }),
       admin.from("mentor_ai_assessments").select("*").in("mentor_id", mentorIds).order("created_at", { ascending: false }),
     ]);
-    documents = (documentRows || []) as unknown[];
-    assessments = (assessmentRows || []) as unknown[];
+
+    if (documentsError || assessmentsError) {
+      console.error("Admin mentor evidence query error", documentsError || assessmentsError);
+      return jsonError("Could not load mentor evidence data.", 500);
+    }
+
+    mentorDocuments = (documentRows || []) as unknown[];
+    mentorAssessments = (assessmentRows || []) as unknown[];
   }
 
-  return NextResponse.json({ mentors: mentors || [], reviews: reviews || [], bookings: bookings || [], documents, assessments });
+  return NextResponse.json({
+    mentors: mentors || [],
+    reviews: reviews || [],
+    bookings: bookings || [],
+    mentorDocuments,
+    mentorAssessments,
+    admin: { email: adminUser.email },
+  });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -95,7 +108,10 @@ export async function PATCH(request: NextRequest) {
     return jsonError("Invalid request body.", 400);
   }
 
-  const { entity, id, status, verification_status } = body;
+  // The admin UI historically sent `resource`; the API contract uses `entity`.
+  // Accept both so older deployed clients cannot silently fail to update records.
+  const entity = body.entity || body.resource;
+  const { id, status, verification_status } = body;
   if (!entity || !id) return jsonError("Entity and id are required.", 400);
 
   if (entity === "mentor") {
@@ -104,7 +120,7 @@ export async function PATCH(request: NextRequest) {
       if (error) return jsonError("Could not update mentor verification.", 500);
       return NextResponse.json({ ok: true });
     }
-    if (!status || !["pending", "approved", "rejected"].includes(status)) return jsonError("Invalid mentor status.", 400);
+    if (!status || !["pending", "approved", "paused"].includes(status)) return jsonError("Invalid mentor status.", 400);
     const { error } = await (admin.from("mentors") as any).update({ status }).eq("id", id);
     if (error) return jsonError("Could not update mentor status.", 500);
     return NextResponse.json({ ok: true });
