@@ -21,6 +21,8 @@ import FeaturedMentors from "@/components/FeaturedMentors";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
+const SHOW_TESTIMONIALS_PLACEHOLDER = false;
+
 const SITUATIONS = [
   { label: "Just left college", query: "left college", icon: GraduationCap },
   { label: "Final-year student", query: "final year", icon: BookOpen },
@@ -156,7 +158,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-b border-ink/10 bg-white"><div className="mx-auto max-w-2xl px-5 py-14 text-center sm:px-6 sm:py-16"><p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-board/60">A growing community</p><p className="font-display text-xl italic leading-relaxed text-ink/45 sm:text-2xl">Real feedback from mentees and mentors will appear here as conversations happen.</p></div></section>
+      {SHOW_TESTIMONIALS_PLACEHOLDER && <section className="border-b border-ink/10 bg-white"><div className="mx-auto max-w-2xl px-5 py-14 text-center sm:px-6 sm:py-16"><p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-board/60">A growing community</p><p className="font-display text-xl italic leading-relaxed text-ink/45 sm:text-2xl">Real feedback from mentees and mentors will appear here as conversations happen.</p></div></section>}
 
       <section className="bg-board text-chalk">
         <div className="mx-auto flex max-w-7xl flex-col gap-7 px-5 py-16 sm:px-6 sm:py-20 md:flex-row md:items-end md:justify-between">
