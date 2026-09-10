@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
@@ -107,7 +108,7 @@ export default function FeaturedMentors() {
                   <article key={mentor.id} className="pin-shadow flex flex-col rounded-sm border border-ink/10 bg-paper p-6 transition-transform hover:-translate-y-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        {mentor.photo_url ? <img src={mentor.photo_url} alt={`${mentor.name} profile`} className="h-20 w-20 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full border border-board/10 bg-board/10 font-display text-3xl text-board">{initial}</div>}
+                        {mentor.photo_url ? <Image src={mentor.photo_url} alt={`${mentor.name} profile`} width={80} height={80} className="h-20 w-20 rounded-full border border-ink/10 object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full border border-board/10 bg-board/10 font-display text-3xl text-board">{initial}</div>}
                       </div>
                       {mentor.verification_status === "verified" && <span className="inline-flex items-center gap-1 rounded-full bg-board/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-board"><ShieldCheck size={12} /> Verified</span>}
                     </div>
@@ -130,18 +131,9 @@ export default function FeaturedMentors() {
           )}
 
           <div className="mt-10 grid gap-3 border-t border-ink/10 pt-6 sm:grid-cols-3">
-            <div className="flex gap-3 rounded-sm bg-paper p-4">
-              <ShieldCheck size={18} className="mt-0.5 shrink-0 text-board" />
-              <div><p className="text-sm font-semibold">Transparent profiles</p><p className="mt-1 text-xs leading-relaxed text-ink/55">See experience, expertise and verification status before you book.</p></div>
-            </div>
-            <div className="flex gap-3 rounded-sm bg-paper p-4">
-              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-board" />
-              <div><p className="text-sm font-semibold">Published feedback</p><p className="mt-1 text-xs leading-relaxed text-ink/55">Reviews come from completed conversations on AglaKadam.</p></div>
-            </div>
-            <div className="flex gap-3 rounded-sm bg-paper p-4">
-              <CalendarDays size={18} className="mt-0.5 shrink-0 text-board" />
-              <div><p className="text-sm font-semibold">One focused call</p><p className="mt-1 text-xs leading-relaxed text-ink/55">A simple 30-minute conversation around your actual question.</p></div>
-            </div>
+            <div className="flex gap-3 rounded-sm bg-paper p-4"><ShieldCheck size={18} className="mt-0.5 shrink-0 text-board" /><div><p className="text-sm font-semibold">Transparent profiles</p><p className="mt-1 text-xs leading-relaxed text-ink/55">See experience, expertise and verification status before you book.</p></div></div>
+            <div className="flex gap-3 rounded-sm bg-paper p-4"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-board" /><div><p className="text-sm font-semibold">Published feedback</p><p className="mt-1 text-xs leading-relaxed text-ink/55">Reviews come from completed conversations on AglaKadam.</p></div></div>
+            <div className="flex gap-3 rounded-sm bg-paper p-4"><CalendarDays size={18} className="mt-0.5 shrink-0 text-board" /><div><p className="text-sm font-semibold">One focused call</p><p className="mt-1 text-xs leading-relaxed text-ink/55">A simple 30-minute conversation around your actual question.</p></div></div>
           </div>
 
           <Link href="/mentors" className="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-board sm:hidden">View all mentors <ArrowRight size={15} /></Link>
