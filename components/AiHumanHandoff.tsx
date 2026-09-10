@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -114,7 +115,7 @@ export default function AiHumanHandoff({ context }: { context: string }) {
               <article key={mentor.id} className="rounded-sm border border-ink/10 bg-white p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 overflow-hidden rounded-full bg-board/10">
-                    {mentor.photo_url ? <img src={mentor.photo_url} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-display">{mentor.name?.charAt(0) || "M"}</span>}
+                    {mentor.photo_url ? <Image src={mentor.photo_url} alt={`${mentor.name}'s photo`} width={40} height={40} className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-display">{mentor.name?.charAt(0) || "M"}</span>}
                   </div>
                   <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><h4 className="truncate text-sm font-semibold">{mentor.name}</h4>{mentor.verification_status === "verified" && <CheckCircle2 size={13} className="shrink-0 text-board" aria-label="Verified mentor" />}</div><p className="truncate text-[11px] text-ink/45">{mentor.role || mentor.headline || "Mentor"}</p></div>
                 </div>
