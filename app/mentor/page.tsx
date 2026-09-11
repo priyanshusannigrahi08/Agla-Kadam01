@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CheckCircle2, FileText, ImagePlus, Loader2, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Clock3, Eye, FileText, Heart, ImagePlus, Loader2, MessagesSquare, ShieldCheck, Sparkles, UploadCloud } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { uploadProfilePhoto } from "@/lib/profilePhoto";
 
@@ -224,6 +224,20 @@ export default function MentorSignup() {
         <Link href="/" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.15em] text-board/60 transition hover:text-board"><span aria-hidden="true">←</span> Back to AglaKadam</Link>
         <header className="mt-8 max-w-2xl sm:mt-12"><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-board/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-board"><span className="h-1.5 w-1.5 rounded-full bg-board" /> Mentor application</div><h1 className="font-display text-4xl leading-[1.05] sm:text-5xl">Offer to mentor someone.</h1><p className="mt-5 max-w-xl text-base leading-7 text-ink/65 sm:text-lg">Share what you know. We’ll review your profile, then connect you with people who could genuinely benefit from your experience.</p><div className="mt-7 grid gap-3 sm:grid-cols-3"><TrustItem icon={<Check size={15} />} text="One 30-minute call" /><TrustItem icon={<ShieldCheck size={15} />} text="Profile reviewed first" /><TrustItem icon={<ArrowRight size={15} />} text="You choose your availability" /></div></header>
 
+        <section className="mt-12 sm:mt-14">
+          <div className="text-center">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">WHY MENTOR ON AGLAKADAM</p>
+            <h2 className="mx-auto mt-3 max-w-2xl font-display text-3xl leading-tight sm:text-4xl">You already have what someone needs right now.</h2>
+          </div>
+          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+            <BenefitCard icon={<Eye size={19} />} title="Build a public track record" body="Your mentor profile is yours to link — on LinkedIn, your portfolio, anywhere. Real reviews from real conversations become proof of the impact you've had, not just a claim on a resume." />
+            <BenefitCard icon={<MessagesSquare size={19} />} title="See the effect of what you say" body="After every call, you get the mentee's feedback directly. Most people who give advice never find out if it landed. You will." />
+            <BenefitCard icon={<Clock3 size={19} />} title="Thirty minutes, your schedule, no strings" body="No curriculum to prepare, no ongoing commitment. You pick your availability, mentees book into it, you show up once and you're done." />
+            <BenefitCard icon={<Heart size={19} />} title="Someone probably did this for you once" body="A single honest conversation at the right moment can change a direction. This is the version of that you can give in half an hour." />
+          </div>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-6 text-ink/60">No fees, no algorithms guessing at you — just people who'd benefit from exactly what you know.</p>
+        </section>
+
         <form onSubmit={handleSubmit} className="mt-10 overflow-hidden rounded-sm border border-ink/10 bg-white shadow-[0_20px_60px_-45px_rgba(23,34,28,0.7)] sm:mt-12">
           <div className="border-b border-ink/10 bg-board/[0.025] px-6 py-5 sm:px-8"><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-board/60">01 / About you</p><h2 className="mt-1 font-display text-2xl">Help people know who they’re talking to.</h2></div>
           <div className="space-y-8 px-6 py-7 sm:px-8 sm:py-9">
@@ -246,6 +260,16 @@ export default function MentorSignup() {
         <p className="mt-6 text-center text-xs leading-5 text-ink/40">Questions? <Link href="/" className="text-board hover:underline">Go back to AglaKadam</Link>.</p>
       </div>
     </main>
+  );
+}
+
+function BenefitCard({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
+  return (
+    <article className="rounded-sm border border-ink/10 bg-white p-5 sm:p-6">
+      <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-board/10 text-board">{icon}</div>
+      <h3 className="mt-5 font-display text-xl leading-tight">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-ink/65">{body}</p>
+    </article>
   );
 }
 
