@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 const SITE_URL = "https://agla-kadam.vercel.app";
 
+type MentorIdRow = { id: string };
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticEntries: MetadataRoute.Sitemap = [
@@ -24,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const admin = getSupabaseAdmin();
     const { data: mentors } = await admin.from("mentors_public").select("id");
-    mentorEntries = (mentors || []).map((mentor) => ({
+    mentorEntries = ((mentors || []) as MentorIdRow[]).map((mentor) => ({
       url: `${SITE_URL}/mentors/${mentor.id}`,
       lastModified: now,
       changeFrequency: "weekly",
