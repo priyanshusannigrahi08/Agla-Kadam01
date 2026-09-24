@@ -85,7 +85,8 @@ Keep answers concise unless the user asks for a detailed plan.`;
       parts: [{ text: message.content }],
     }));
 
-    const model = "gemini-3.8-flash";
+    // Use the broadly available Gemini 3.6 Flash model for the chat endpoint.
+    const model = "gemini-3.6-flash";
     const apiKey = process.env.GEMINI_API_KEY.trim();
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
@@ -93,7 +94,10 @@ Keep answers concise unless the user asks for a detailed plan.`;
         "Content-Type": "application/json",
         "x-goog-api-key": apiKey,
       },
-      body: JSON.stringify({ system_instruction: { parts: [{ text: systemInstruction }] }, contents }),
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents,
+      }),
       signal: AbortSignal.timeout(30000),
     });
     const data = await response.json();
