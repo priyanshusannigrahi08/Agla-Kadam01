@@ -6,7 +6,7 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
   },
   webServer: {
-    command: "npm run dev",
+    command: "npm run start",
     url: "http://localhost:3000",
   },
 });
