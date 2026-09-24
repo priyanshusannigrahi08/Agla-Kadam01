@@ -85,7 +85,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
       parts: [{ text: message.content }],
     }));
 
-    const model = "gemini-3.6-flash";
+    const model = "gemini-3.8-flash";
     const apiKey = process.env.GEMINI_API_KEY.trim();
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
