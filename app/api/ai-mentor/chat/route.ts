@@ -111,15 +111,14 @@ Keep answers concise unless the user asks for a detailed plan.`;
 
     const apiKey = process.env.GEMINI_API_KEY.trim();
 
-    // A key can be restricted to a different available model. Let deployments
-    // select one, then try stable text-model fallbacks before returning an error.
+    // Use the current Gemini text model by default. An explicit deployment
+    // override is supported, but do not retry retired model IDs: their error
+    // would hide the reason the configured/current model failed.
     const models = Array.from(
       new Set(
         [
           process.env.GEMINI_MODEL?.trim(),
           "gemini-3.6-flash",
-          "gemini-3.5-flash",
-          "gemini-2.5-flash",
         ].filter((model): model is string => Boolean(model))
       )
     );
