@@ -16,6 +16,30 @@ function clean(value: unknown, max = 1200) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function geminiErrorMessage(data: unknown, status: number) {
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    data.error &&
+    typeof data.error === "object" &&
+    "message" in data.error &&
+    typeof data.error.message === "string"
+  ) {
+    return data.error.message;
+  }
+
+  if (status === 401 || status === 403) {
+    return "Gemini rejected the API key. Check its API restrictions and the Generative Language API setting.";
+  }
+
+  if (status === 429) {
+    return "Gemini rate limit or quota was reached. Check the Google AI Studio project quota and billing.";
+  }
+
+  return "Gemini could not generate a response. Please try again.";
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -85,29 +109,66 @@ Keep answers concise unless the user asks for a detailed plan.`;
       parts: [{ text: message.content }],
     }));
 
-    // Use the broadly available Gemini 3.6 Flash model for the chat endpoint.
-    const model = "gemini-3.6-flash";
     const apiKey = process.env.GEMINI_API_KEY.trim();
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemInstruction }] },
-        contents,
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      console.error("Gemini API error:", response.status);
-      return NextResponse.json({ error: "The mentor could not respond right now." }, { status: response.status });
+
+    // A key can be restricted to a different available model. Let deployments
+    // select one, then try stable text-model fallbacks before returning an error.
+    const models = Array.from(
+      new Set(
+        [
+          process.env.GEMINI_MODEL?.trim(),
+          "gemini-3.6-flash",
+          "gemini-3.5-flash",
+          "gemini-2.5-flash",
+        ].filter((model): model is string => Boolean(model))
+      )
+    );
+
+    let lastStatus = 502;
+    let lastError = "Gemini could not generate a response. Please try again.";
+
+    for (const model of models) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+          }),
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+      const data = await response.json().catch(() => null);
+
+      if (response.ok) {
+        const reply: string = data?.candidates?.[0]?.content?.parts
+          ?.map((part: { text?: string }) => part.text ?? "")
+          .join("")
+          .trim();
+
+        if (reply) return NextResponse.json({ reply });
+
+        lastStatus = 502;
+        lastError = "Gemini returned an empty response. Please try again.";
+        continue;
+      }
+
+      lastStatus = response.status;
+      lastError = geminiErrorMessage(data, response.status);
+      console.error("Gemini chat error:", { model, status: response.status, message: lastError });
+
+      // Authentication and quota failures will affect every model, so avoid
+      // making unnecessary provider calls.
+      if (response.status === 401 || response.status === 403 || response.status === 429) break;
     }
 
-    const reply: string = data?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("").trim() || "I'm sorry, I couldn't generate a response. Please try again.";
-    return NextResponse.json({ reply });
+    return NextResponse.json({ error: lastError }, { status: lastStatus });
   } catch (error) {
     console.error("AI mentor route error:", error instanceof Error ? error.message : "unknown error");
     return NextResponse.json({ error: "Something went wrong while contacting the mentor." }, { status: 500 });
