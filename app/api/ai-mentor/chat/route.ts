@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { virtualMentors } from "@/app/data/virtualMentors";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { geminiModel, isAiRateLimited } from "@/lib/serverAi";
 
 export const runtime = "nodejs";
 
@@ -42,8 +43,17 @@ function geminiErrorMessage(data: unknown, status: number) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (isAiRateLimited(request, "mentor-chat", 20)) {
+      return NextResponse.json({ error: "Too many mentor messages. Please wait a minute and try again." }, { status: 429 });
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: "AI service is not configured." }, { status: 500 });
+    }
+
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (!Number.isFinite(contentLength) || contentLength > 100_000) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
     }
 
     const body = await request.json();
@@ -111,17 +121,7 @@ Keep answers concise unless the user asks for a detailed plan.`;
 
     const apiKey = process.env.GEMINI_API_KEY.trim();
 
-    // Use the current Gemini text model by default. An explicit deployment
-    // override is supported, but do not retry retired model IDs: their error
-    // would hide the reason the configured/current model failed.
-    const models = Array.from(
-      new Set(
-        [
-          process.env.GEMINI_MODEL?.trim(),
-          "gemini-3.6-flash",
-        ].filter((model): model is string => Boolean(model))
-      )
-    );
+    const models = [geminiModel()];
 
     let lastStatus = 502;
     let lastError = "Gemini could not generate a response. Please try again.";

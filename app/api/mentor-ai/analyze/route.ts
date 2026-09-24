@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { geminiModel, isAiRateLimited } from "@/lib/serverAi";
 import { supabase } from "@/lib/supabaseClient";
 
 export const runtime = "nodejs";
@@ -60,6 +61,7 @@ function isRateLimited(key: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (isAiRateLimited(request, "mentor-evidence-analysis", 6)) return NextResponse.json({ error: "Too many evidence analysis requests. Please wait a minute and try again." }, { status: 429 });
     const authHeader = request.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
     if (!fileParts.length) return NextResponse.json({ error: "The uploaded evidence could not be read." }, { status: 400 });
 
-    const model = "gemini-flash-latest";
+    const model = geminiModel();
     const prompt = `You are the evidence-review assistant for AglaKadam. Review the attached mentor documents alongside the mentor's self-reported profile. Do not decide whether a person is truthful or fraudulent. Instead, identify evidence-supported facts, missing evidence, and consistency questions that an admin should review. Never infer sensitive traits. Do not treat a resume or certificate as proof of identity. Return ONLY valid JSON with this shape: {"extracted_profile":{"headline":"","roles":[],"industries":[],"skills":[],"certifications":[],"years_experience":null},"consistency_checks":[{"field":"","severity":"low|medium|high","finding":""}],"readiness_score":0,"strengths":[],"improvements":[]}. Score mentoring readiness, not personal worth: consider clarity of experience, evidence of relevant expertise, coherent career story, useful skills/certifications, and how well the profile explains what the mentor can help with. The score is advisory for admin review. Resume/profile: ${JSON.stringify({ name: mentor.name, expertise: mentor.expertise, experience: mentor.experience, journey: mentor.journey, why_mentor: mentor.why_mentor, linkedin: mentor.linkedin })}`;
     const apiKey = process.env.GEMINI_API_KEY.trim();
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {

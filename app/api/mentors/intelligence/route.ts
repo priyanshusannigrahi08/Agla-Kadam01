@@ -1,63 +1,24 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-
 export const runtime = "nodejs";
 
-type MentorIdRow = { id: string };
-type AssessmentRow = { mentor_id: string; extracted_profile: unknown; status: string; created_at: string };
-
-function strings(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 30)
-    : [];
-}
+type PublicIntelligenceRow = { mentor_id: string; ai_skills: string[] | null; ai_roles: string[] | null; ai_industries: string[] | null; ai_certifications: string[] | null; ai_profile_available: boolean | null };
 
 export async function GET() {
   try {
-    const admin = getSupabaseAdmin();
-    const { data: mentors, error: mentorsError } = await admin
-      .from("mentors")
-      .select("id")
-      .eq("status", "approved");
+    const { createClient } = await import("@supabase/supabase-js");
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anonKey) return NextResponse.json({ intelligence: [] });
+    const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await client
+      .from("mentors_public")
+      .select("id,ai_skills,ai_roles,ai_industries,ai_certifications,ai_profile_available");
 
-    if (mentorsError) {
-      console.error("Public mentor intelligence mentor query error", mentorsError);
+    if (error) {
+      console.error("Public mentor intelligence query error", { message: error.message });
       return NextResponse.json({ intelligence: [] });
     }
-
-    const ids = ((mentors || []) as MentorIdRow[]).map((mentor) => mentor.id);
-    if (ids.length === 0) return NextResponse.json({ intelligence: [] });
-
-    const { data: assessments, error: assessmentsError } = await admin
-      .from("mentor_ai_assessments")
-      .select("mentor_id,extracted_profile,status,created_at")
-      .in("mentor_id", ids)
-      .eq("status", "completed")
-      .order("created_at", { ascending: false });
-
-    if (assessmentsError) {
-      console.error("Public mentor intelligence query error", assessmentsError);
-      return NextResponse.json({ intelligence: [] });
-    }
-
-    const latest = new Map<string, AssessmentRow>();
-    for (const assessment of (assessments || []) as AssessmentRow[]) {
-      if (!latest.has(assessment.mentor_id)) latest.set(assessment.mentor_id, assessment);
-    }
-
-    const intelligence = Array.from(latest.entries()).map(([mentorId, assessment]) => {
-      const extracted = assessment.extracted_profile && typeof assessment.extracted_profile === "object"
-        ? assessment.extracted_profile as Record<string, unknown>
-        : {};
-      return {
-        mentorId,
-        skills: strings(extracted.skills),
-        roles: strings(extracted.roles),
-        industries: strings(extracted.industries),
-        certifications: strings(extracted.certifications),
-        aiProfileAvailable: true,
-      };
-    });
+    const intelligence = ((data || []) as Array<Omit<PublicIntelligenceRow, "mentor_id"> & { id: string }>).map((mentor) => ({ mentorId: mentor.id, skills: mentor.ai_skills || [], roles: mentor.ai_roles || [], industries: mentor.ai_industries || [], certifications: mentor.ai_certifications || [], aiProfileAvailable: Boolean(mentor.ai_profile_available) }));
 
     return NextResponse.json(
       { intelligence },
