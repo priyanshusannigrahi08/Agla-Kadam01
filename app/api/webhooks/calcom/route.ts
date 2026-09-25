@@ -52,6 +52,12 @@ function getEventStatus(triggerEvent: string, providerStatus: string | null) {
   return providerStatus?.toUpperCase() === "CANCELLED" ? "cancelled" : "confirmed";
 }
 
+function nextBookingStatus(current: string, requested: string) {
+  if (current === "completed" || current === "cancelled") return current;
+  if (current === "confirmed" && requested === "requested") return current;
+  return requested;
+}
+
 export async function POST(request: Request) {
   const secret = process.env.CALCOM_WEBHOOK_SECRET;
   if (!secret) {
@@ -155,7 +161,7 @@ export async function POST(request: Request) {
 
   if (!booking) return NextResponse.json({ ok: true, matched: false });
 
-  const nextStatus = getEventStatus(triggerEvent, providerStatus);
+  const nextStatus = nextBookingStatus(booking.status, getEventStatus(triggerEvent, providerStatus));
   const update: Record<string, unknown> = {
     calcom_booking_uid: uid || booking.calcom_booking_uid,
     calcom_booking_id: bookingId,
@@ -165,7 +171,7 @@ export async function POST(request: Request) {
     calcom_last_event_at: new Date().toISOString(),
   };
   if (startTime) update.scheduled_for = startTime;
-  if (!(booking.status === "completed" && nextStatus === "cancelled")) update.status = nextStatus;
+  update.status = nextStatus;
 
   // The admin client is intentionally created without generated Database types.
   // Cast the update payload at this boundary so Supabase's untyped table overload

@@ -46,12 +46,15 @@ export default function MentorEvidencePage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Please sign in again.");
-      const safe = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(-120);
-      const path = `${user.id}/${crypto.randomUUID()}-${safe}`;
-      const { error: uploadError } = await supabase.storage.from("mentor-evidence").upload(path, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error("The file could not be uploaded. Make sure the evidence storage SQL has been run.");
-      const { error: insertError } = await supabase.from("mentor_documents").insert({ mentor_id: mentorId, user_id: user.id, document_type: type, file_name: file.name.slice(0, 240), storage_path: path, mime_type: file.type, file_size: file.size });
-      if (insertError) { await supabase.storage.from("mentor-evidence").remove([path]); throw new Error("The document record could not be saved."); }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please sign in again.");
+      const formData = new FormData();
+      formData.set("mentorId", mentorId);
+      formData.set("documentType", type);
+      formData.set("file", file);
+      const response = await fetch("/api/mentor-evidence/upload", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: formData });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "The file could not be uploaded.");
       setMessage(type === "resume" ? "Resume added." : "Certification added.");
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed."); } finally { setUploading(false); }
