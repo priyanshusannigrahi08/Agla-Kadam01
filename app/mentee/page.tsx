@@ -8,13 +8,6 @@ import { ArrowRight, Check, Heart, Target, UserRound, ShieldCheck, Sparkles } fr
 import { supabase } from "@/lib/supabaseClient";
 import { uploadProfilePhoto } from "@/lib/profilePhoto";
 
-const SITUATIONS = [
-  "Left college, figuring out next steps",
-  "Final-year student, unsure what's next",
-  "Working, want to switch careers",
-  "Something else",
-];
-
 export default function MenteeSignup() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -43,7 +36,7 @@ export default function MenteeSignup() {
 
       if (name.length < 1 || name.length > 100) throw new Error("Please enter a name between 1 and 100 characters.");
       if (email.length > 320) throw new Error("Please enter a valid email address.");
-      if (!SITUATIONS.includes(situationValue)) throw new Error("Please choose a valid situation.");
+      if (!situationValue || situationValue.length > 2000) throw new Error("Please describe your current situation in 1–2000 characters.");
       if (!backgroundValue || backgroundValue.length > 2000) throw new Error("Please describe your background in 1–2000 characters.");
       if (!stuckOnValue || stuckOnValue.length > 2000) throw new Error("Please describe what you're stuck on in 1–2000 characters.");
 
@@ -137,12 +130,9 @@ export default function MenteeSignup() {
                 </div>
               </SectionCard>
 
-              <SectionCard icon={<Target size={19} />} eyebrow="02" title="Your situation" description="Choose the chapter that feels closest to where you are right now.">
-                <Field label="Which of these fits you best?" htmlFor="situation" required>
-                  <select id="situation" name="situation" required className="input" defaultValue="">
-                    <option value="" disabled>Choose one</option>
-                    {SITUATIONS.map((situation) => <option key={situation} value={situation}>{situation}</option>)}
-                  </select>
+              <SectionCard icon={<Target size={19} />} eyebrow="02" title="Your situation" description="Tell us what your current situation looks like right now.">
+                <Field label="Tell us about your current situation" htmlFor="situation" required hint="For example: your current stage, what you've been doing, or what changed recently.">
+                  <textarea id="situation" name="situation" required maxLength={2000} rows={4} className="input resize-y" placeholder="e.g. I'm in my final year of college and exploring analytics, but I'm unsure which direction to focus on next." />
                 </Field>
 
                 <div className="mt-5">
