@@ -19,7 +19,9 @@ test("find mentor loads and accepts the required context", async ({ page }) => {
 test("find mentor keeps the free-text situation field bounded and validates an empty submission", async ({ page }) => {
   await page.goto("/find-mentor");
   const context = page.getByLabel("What's going on?");
-  await expect(context).toHaveAttribute("maxlength", "6000");
+  await context.fill("a".repeat(6001));
+  await expect(context).toHaveValue("a".repeat(6000));
+  await context.fill("");
   await page.getByRole("button", { name: /Find my matches/i }).click();
   await expect(page.locator("form").getByRole("alert")).toContainText("Give us a little more context");
 });
@@ -35,7 +37,7 @@ test("mobile navigation opens, exposes its links, and closes after navigation", 
   await expect(navigation.getByRole("link", { name: "AI mentor" })).toBeVisible();
   await navigation.getByRole("link", { name: "AI mentor" }).click();
   await expect(page).toHaveURL("/ai-mentor");
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "Toggle menu" })).toHaveCount(0);
 });
 
 test("AI mentor page renders a bounded chat field without requiring credentials", async ({ page }) => {

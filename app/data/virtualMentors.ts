@@ -62,7 +62,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Finance & Accounting",
     expertise: ["Finance", "Accounting", "Corporate Careers", "Career Paths"],
     bio: "Helping students and professionals understand finance, accounting, qualifications, and possible career directions.",
-    image: "/virtual-mentors/vikram-rao.jpg",
+    image: "",
   },
   {
     id: "ananya-sharma",
@@ -70,7 +70,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Medical Careers",
     expertise: ["Medical Education", "MBBS", "Specializations", "Career Paths"],
     bio: "Career-focused guidance for students exploring medicine, medical education, and possible professional paths.",
-    image: "/virtual-mentors/ananya-sharma.jpg",
+    image: "",
   },
   {
     id: "neha-verma",
@@ -78,7 +78,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Law & Legal Careers",
     expertise: ["Law School", "Legal Careers", "Specializations"],
     bio: "Helping aspiring legal professionals understand education paths, legal specializations, and career possibilities.",
-    image: "/virtual-mentors/neha-verma.jpg",
+    image: "",
   },
   {
     id: "rahul-singh",
@@ -86,7 +86,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Civil Engineering",
     expertise: ["Civil Engineering", "Construction", "Infrastructure"],
     bio: "Guidance for civil engineering students and professionals exploring skills, industries, and career opportunities.",
-    image: "/virtual-mentors/rahul-singh.jpg",
+    image: "",
   },
   {
     id: "karan-malhotra",
@@ -94,7 +94,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Mechanical Engineering",
     expertise: ["Mechanical Engineering", "Core Jobs", "Design", "Manufacturing"],
     bio: "Helping mechanical engineering students understand industries, skills, higher studies, and career options.",
-    image: "/virtual-mentors/karan-malhotra.jpg",
+    image: "",
   },
   {
     id: "sneha-patel",
@@ -102,7 +102,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Psychology Careers",
     expertise: ["Psychology", "Education Paths", "Career Planning"],
     bio: "Career guidance for people interested in psychology, related education pathways, and professional possibilities.",
-    image: "/virtual-mentors/sneha-patel.jpg",
+    image: "",
   },
   {
     id: "aditya-bose",
@@ -110,7 +110,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Higher Studies & Research",
     expertise: ["Masters", "Research", "PhD", "Study Planning"],
     bio: "Helping students explore higher education, research careers, applications, and academic planning.",
-    image: "/virtual-mentors/aditya-bose.jpg",
+    image: "",
   },
   {
     id: "isha-menon",
@@ -118,7 +118,7 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Teaching & Education",
     expertise: ["Teaching", "Education", "Academic Careers"],
     bio: "Guidance for aspiring educators exploring teaching careers, qualifications, and opportunities in education.",
-    image: "/virtual-mentors/isha-menon.jpg",
+    image: "",
   },
   {
     id: "aarav-khanna",
@@ -126,6 +126,6 @@ export const virtualMentors: VirtualMentor[] = [
     profession: "Content & Creative Careers",
     expertise: ["Writing", "Content Creation", "Media", "Creative Careers"],
     bio: "Helping people explore writing, content, media, and other creative career paths.",
-    image: "/virtual-mentors/aarav-khanna.jpg",
+    image: "",
   },
 ];
