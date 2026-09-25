@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function AuthButton() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function AuthButton() {
     setSigningOut(true);
     const { error } = await supabase.auth.signOut();
     if (error) { setSigningOut(false); return; }
-    setUser(null); setProfileName(null); window.location.href = "/";
+    setUser(null); setProfileName(null); router.push("/"); router.refresh();
   }
 
   if (loading) return <div className="inline-flex items-center justify-center rounded-sm border border-ink/20 bg-white px-4 py-2.5 text-sm font-medium">Loading...</div>;

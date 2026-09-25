@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { geminiModel, isAiRateLimited } from "@/lib/serverAi";
-import { supabase } from "@/lib/supabaseClient";
 
 export const runtime = "nodejs";
 
@@ -9,9 +8,6 @@ const MAX_FILES = 6;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_BODY_BYTES = 55 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX = 5;
-const limits = new Map<string, { count: number; resetAt: number }>();
 
 type DocumentRow = { id: string; mentor_id: string; user_id: string; document_type: string; file_name: string; storage_path: string; mime_type: string; file_size: number };
 
@@ -43,31 +39,15 @@ function normalizeAssessment(value: any, model: string) {
   };
 }
 
-function clientKey(request: NextRequest, userId: string) {
-  return `${userId}:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"}`;
-}
-
-function isRateLimited(key: string) {
-  const now = Date.now();
-  const current = limits.get(key);
-  if (!current || current.resetAt <= now) {
-    limits.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  if (current.count >= RATE_MAX) return true;
-  current.count += 1;
-  return false;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    if (isAiRateLimited(request, "mentor-evidence-analysis", 6)) return NextResponse.json({ error: "Too many evidence analysis requests. Please wait a minute and try again." }, { status: 429 });
+    if (isAiRateLimited(request, "mentor-evidence-analysis", 5)) return NextResponse.json({ error: "Too many evidence analysis requests. Please wait a minute and try again." }, { status: 429 });
     const authHeader = request.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const admin = getSupabaseAdmin() as any;
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: "Your session is no longer valid." }, { status: 401 });
-    if (isRateLimited(clientKey(request, user.id))) return NextResponse.json({ error: "Too many evidence analyses. Please wait a minute and try again." }, { status: 429 });
 
     const contentLength = request.headers.get("content-length");
     if (contentLength) {
@@ -84,7 +64,6 @@ export async function POST(request: NextRequest) {
     const mentorId = String(body?.mentorId || "");
     if (!mentorId) return NextResponse.json({ error: "Mentor profile is required." }, { status: 400 });
 
-    const admin = getSupabaseAdmin() as any;
     const { data: mentor, error: mentorError } = await admin.from("mentors").select("id,user_id,name,expertise,experience,journey,why_mentor,linkedin").eq("id", mentorId).maybeSingle();
     if (mentorError || !mentor || mentor.user_id !== user.id) return NextResponse.json({ error: "Mentor profile not found." }, { status: 404 });
 
