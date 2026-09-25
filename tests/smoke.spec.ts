@@ -12,7 +12,8 @@ test("find mentor loads and accepts the required context", async ({ page }) => {
   await expect(context).toBeVisible();
   await context.fill("I am exploring my next career direction and want practical guidance from someone with relevant experience.");
   await expect(page.getByRole("button", { name: /Find my matches/i })).toBeEnabled();
-  await expect(page.locator('[role="alert"]')).toHaveCount(0);
+  // Scope this to the form: browser extensions may add unrelated global alerts.
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
 });
 
 test("articles loads and opens the first article", async ({ page }) => {
