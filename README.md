@@ -54,6 +54,7 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3.6-flash
 CALCOM_WEBHOOK_SECRET=your_calcom_webhook_secret
 ADMIN_EMAILS=your-admin-email@example.com
 ```
@@ -86,6 +87,15 @@ Run the SQL scripts in this order in the Supabase SQL Editor:
 5. [`supabase/ai_conversations.sql`](./supabase/ai_conversations.sql) — adds
    private, account-owned AI mentor conversations with RLS, indexes and an
    automatic `updated_at` trigger.
+6. [`supabase/mentor_ai_evidence.sql`](./supabase/mentor_ai_evidence.sql) —
+   adds private mentor evidence and its owner-scoped policies.
+7. [`supabase/mentor_public_intelligence.sql`](./supabase/mentor_public_intelligence.sql)
+   — publishes only approved, safe AI-derived discovery fields.
+8. [`supabase/20260925_mentor_update_hardening.sql`](./supabase/20260925_mentor_update_hardening.sql)
+   — limits mentor profile edits, enforces document ownership, and restricts
+   mentor booking updates.
+9. [`supabase/20260925_booking_transition_hardening.sql`](./supabase/20260925_booking_transition_hardening.sql)
+   — applies the booking state machine to dashboard, admin, and webhook writes.
 
 `mentors_public` is a dedicated projection table, not a public SQL view. A
 trigger keeps it synchronized with approved mentors while keeping private

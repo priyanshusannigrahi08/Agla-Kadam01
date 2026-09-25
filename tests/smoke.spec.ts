@@ -16,6 +16,34 @@ test("find mentor loads and accepts the required context", async ({ page }) => {
   await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
 });
 
+test("find mentor keeps the free-text situation field bounded and validates an empty submission", async ({ page }) => {
+  await page.goto("/find-mentor");
+  const context = page.getByLabel("What's going on?");
+  await expect(context).toHaveAttribute("maxlength", "6000");
+  await page.getByRole("button", { name: /Find my matches/i }).click();
+  await expect(page.locator("form").getByRole("alert")).toContainText("Give us a little more context");
+});
+
+test("mobile navigation opens, exposes its links, and closes after navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: "Toggle menu" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const navigation = page.getByRole("navigation", { name: "Mobile navigation" });
+  await expect(navigation.getByRole("link", { name: "AI mentor" })).toBeVisible();
+  await navigation.getByRole("link", { name: "AI mentor" }).click();
+  await expect(page).toHaveURL("/ai-mentor");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("AI mentor page renders a bounded chat field without requiring credentials", async ({ page }) => {
+  await page.goto("/ai-mentor/arjun-mehta");
+  await expect(page.getByRole("heading", { name: "Arjun Mehta" })).toBeVisible();
+  await expect(page.getByPlaceholder("Ask Arjun Mehta anything…")).toHaveAttribute("maxlength", "4000");
+});
+
 test("articles loads and opens the first article", async ({ page }) => {
   await page.goto("/articles");
   const firstArticle = page.locator('a[href^="/articles/"]').first();
