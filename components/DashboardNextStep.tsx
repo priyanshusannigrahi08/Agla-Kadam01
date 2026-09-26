@@ -54,7 +54,7 @@ export default function DashboardNextStep() {
 
   const icon = item?.kind === "goal" ? <Target size={20} /> : item?.kind === "action" ? <CheckCircle2 size={20} /> : <CalendarDays size={20} />;
 
-  return <section className="rounded-sm border border-board/15 bg-board p-6 text-chalk pin-shadow sm:p-8">
+  return <section className="border-y border-board/15 bg-board p-6 text-chalk sm:p-8">
     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-chalk/10 text-amber">{item ? icon : <Zap size={20} />}</div>

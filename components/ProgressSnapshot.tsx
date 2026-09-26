@@ -25,7 +25,7 @@ export default function ProgressSnapshot() {
   }, []);
 
   return (
-    <section className="border border-ink/10 bg-white p-5 sm:p-6 pin-shadow">
+    <section className="border-y border-ink/10 py-6 sm:py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-board/60">Momentum</p>
@@ -34,36 +34,36 @@ export default function ProgressSnapshot() {
         <Link href="/progress" className="inline-flex items-center gap-1.5 text-xs font-semibold text-board hover:underline">View progress <ArrowRight size={13} /></Link>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-sm border border-ink/10 bg-paper p-4">
+      <div className="mt-6 grid divide-y divide-ink/10 border-y border-ink/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="py-4 sm:pr-4">
           <Target size={17} className="text-board" />
           <p className="mt-3 font-display text-2xl">{stats.goals}</p>
           <p className="mt-1 text-xs text-ink/50">active goals</p>
         </div>
-        <div className="rounded-sm border border-ink/10 bg-paper p-4">
+        <div className="py-4 sm:px-4">
           <CheckCircle2 size={17} className="text-board" />
           <p className="mt-3 font-display text-2xl">{stats.actions}</p>
           <p className="mt-1 text-xs text-ink/50">actions completed</p>
         </div>
-        <div className="rounded-sm border border-ink/10 bg-paper p-4">
+        <div className="py-4 sm:pl-4">
           <Users size={17} className="text-board" />
           <p className="mt-3 font-display text-2xl">{stats.conversations}</p>
           <p className="mt-1 text-xs text-ink/50">mentor conversations</p>
         </div>
       </div>
 
-      <div className="mt-6 rounded-sm border border-ink/10 bg-board p-4 text-chalk sm:p-5">
+      <div className="mt-6 bg-board p-5 text-chalk sm:p-6">
         <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-amber">The AglaKadam loop</p>
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Problem</span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.12em] text-chalk/70">
+          <span>Problem</span>
           <span className="text-chalk/35">→</span>
-          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Mentor</span>
+          <span>Mentor</span>
           <span className="text-chalk/35">→</span>
-          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Conversation</span>
+          <span>Conversation</span>
           <span className="text-chalk/35">→</span>
-          <span className="rounded-full border border-chalk/15 px-3 py-1.5">Action</span>
+          <span>Action</span>
           <span className="text-chalk/35">→</span>
-          <span className="rounded-full border border-amber/40 px-3 py-1.5 text-amber">Next step</span>
+          <span className="text-amber">Next step</span>
         </div>
         <p className="mt-4 max-w-2xl text-xs leading-5 text-chalk/55">You do not need the whole path figured out. One useful conversation can create the next experiment.</p>
       </div>

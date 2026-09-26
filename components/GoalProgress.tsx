@@ -33,7 +33,7 @@ export default function GoalProgress() {
   const progress = Math.round((completed / goals.length) * 100);
 
   return (
-    <section className="rounded-sm border border-ink/10 bg-white p-6 pin-shadow sm:p-7">
+    <section className="border-y border-ink/10 py-6 sm:py-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-board/60">Direction</p>
@@ -50,9 +50,9 @@ export default function GoalProgress() {
         <span className="font-mono text-xs text-ink/50">{completed}/{goals.length}</span>
       </div>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 divide-y divide-ink/10 border-y border-ink/10">
         {goals.map(goal => (
-          <Link key={goal.id} href="/goals" className="flex items-start gap-3 rounded-sm border border-ink/10 bg-paper p-3.5 hover:border-board/20">
+          <Link key={goal.id} href="/goals" className="flex items-start gap-3 py-3.5 transition-colors hover:text-board">
             {goal.completed ? <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-board"/> : <Circle size={17} className="mt-0.5 shrink-0 text-ink/35"/>}
             <span className={`text-sm leading-5 ${goal.completed ? "text-ink/45 line-through" : "font-medium"}`}>{goal.text}</span>
           </Link>

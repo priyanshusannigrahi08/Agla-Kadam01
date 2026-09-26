@@ -39,7 +39,7 @@ select:focus-visible {
 }
 
 .pin-shadow {
-  box-shadow: 0 18px 30px -14px rgba(23, 34, 28, 0.35);
+  box-shadow: 0 10px 20px -16px rgba(23, 34, 28, 0.28);
 }
 
 .pin-dot::before {

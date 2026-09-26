@@ -41,7 +41,10 @@ export default function SiteHeader() {
         <Link href="/" className="font-display text-xl tracking-tight" aria-label="AglaKadam home">AglaKadam</Link>
 
         <nav className="hidden items-center gap-7 font-body text-sm text-ink/65 md:flex" aria-label="Main navigation">
-          {links.map((link) => <Link key={link.href} href={link.href} className="transition hover:text-ink">{link.label}</Link>)}
+          {links.map((link) => {
+            const current = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            return <Link key={link.href} href={link.href} aria-current={current ? "page" : undefined} className={`border-b pb-1 transition hover:text-ink ${current ? "border-amber text-ink" : "border-transparent"}`}>{link.label}</Link>;
+          })}
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -65,11 +68,12 @@ export default function SiteHeader() {
         <div id="mobile-site-navigation" className="border-t border-ink/10 bg-paper md:hidden">
           <nav className="mx-auto max-w-7xl px-5 py-4 sm:px-6" aria-label="Mobile navigation">
             <div className="grid gap-1">
-              {links.map((link) => (
-                <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="rounded-sm px-3 py-3 font-body text-sm font-medium text-ink/75 transition hover:bg-white hover:text-ink focus:outline-none focus:ring-2 focus:ring-board/40">
+              {links.map((link) => {
+                const current = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                return <Link key={link.href} href={link.href} aria-current={current ? "page" : undefined} onClick={() => setOpen(false)} className={`rounded-sm px-3 py-3 font-body text-sm font-medium transition hover:bg-white hover:text-ink focus:outline-none focus:ring-2 focus:ring-board/40 ${current ? "bg-white text-ink" : "text-ink/75"}`}>
                   {link.label}
-                </Link>
-              ))}
+                </Link>;
+              })}
             </div>
             <div className="mt-3 border-t border-ink/10 pt-3">
               <AuthButton />
