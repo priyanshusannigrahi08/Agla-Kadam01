@@ -69,33 +69,49 @@ booking operations. Keep this list limited to trusted administrators.
 
 ## Supabase setup
 
-Run the SQL scripts in this order in the Supabase SQL Editor:
+Run the SQL scripts in this order in the Supabase SQL Editor. This repository
+does not include a migration runner or a checked-in production migration
+history, so first inspect the target database and apply only scripts that have
+not already been applied there.
 
 1. [`supabase/schema.sql`](./supabase/schema.sql) — creates the base
    `mentors` and `mentees` tables and baseline RLS.
-2. [`supabase/platform_upgrade.sql`](./supabase/platform_upgrade.sql) — adds
+2. [`supabase/basic_profiles.sql`](./supabase/basic_profiles.sql) — creates the
+   account-owned `profiles` table used by profile setup, settings, dashboard,
+   and updates. It permits ages 13–120; the repository does not establish a
+   complete under-18 mentorship policy.
+3. [`supabase/platform_upgrade.sql`](./supabase/platform_upgrade.sql) — adds
    the current mentor/mentee fields, reviews, bookings, the canonical public
    mentor projection table, ownership policies, review eligibility checks, and
    the `profile-photos` storage bucket/upload policy.
-3. [`supabase/production_hardening.sql`](./supabase/production_hardening.sql) —
+4. [`supabase/production_hardening.sql`](./supabase/production_hardening.sql) —
    tightens grants, auth foreign keys, storage/booking/review access, external
    URL constraints, duplicate protection, and default privileges. Its legacy-
    safe `NOT VALID` constraints allow old data to be cleaned up separately.
-4. [`supabase/calcom_integration.sql`](./supabase/calcom_integration.sql) — adds
+5. [`supabase/calcom_integration.sql`](./supabase/calcom_integration.sql) — adds
    nullable Cal.com booking identifiers/status fields and indexes. It is
    backward-compatible with existing booking rows.
-5. [`supabase/ai_conversations.sql`](./supabase/ai_conversations.sql) — adds
+6. [`supabase/career_goals.sql`](./supabase/career_goals.sql) — creates the
+   account-owned goals used by goals, progress, and next-step surfaces.
+7. [`supabase/career_journey.sql`](./supabase/career_journey.sql) — creates
+   conversation actions and public mentor story synchronization. It depends on
+   the booking and public mentor tables from `platform_upgrade.sql`.
+8. [`supabase/ai_conversations.sql`](./supabase/ai_conversations.sql) — adds
    private, account-owned AI mentor conversations with RLS, indexes and an
    automatic `updated_at` trigger.
-6. [`supabase/mentor_ai_evidence.sql`](./supabase/mentor_ai_evidence.sql) —
+9. [`supabase/mentor_ai_evidence.sql`](./supabase/mentor_ai_evidence.sql) —
    adds private mentor evidence and its owner-scoped policies.
-7. [`supabase/mentor_public_intelligence.sql`](./supabase/mentor_public_intelligence.sql)
-   — publishes only approved, safe AI-derived discovery fields.
-8. [`supabase/20260925_mentor_update_hardening.sql`](./supabase/20260925_mentor_update_hardening.sql)
-   — limits mentor profile edits, enforces document ownership, and restricts
-   mentor booking updates.
-9. [`supabase/20260925_booking_transition_hardening.sql`](./supabase/20260925_booking_transition_hardening.sql)
-   — applies the booking state machine to dashboard, admin, and webhook writes.
+10. [`supabase/mentor_public_intelligence.sql`](./supabase/mentor_public_intelligence.sql)
+    — publishes only approved, safe AI-derived discovery fields.
+11. [`supabase/20260925_mentor_update_hardening.sql`](./supabase/20260925_mentor_update_hardening.sql)
+    — limits mentor profile edits, enforces document ownership, and restricts
+    mentor booking updates. It depends on the evidence tables above.
+12. [`supabase/20260925_booking_transition_hardening.sql`](./supabase/20260925_booking_transition_hardening.sql)
+    — applies the booking state machine to dashboard, admin, and webhook writes.
+
+`supabase/mentor_intelligence_public.sql` is a legacy public view that is not
+queried by the current application. Do not apply it alongside
+`mentor_public_intelligence.sql` unless you specifically need that view.
 
 `mentors_public` is a dedicated projection table, not a public SQL view. A
 trigger keeps it synchronized with approved mentors while keeping private

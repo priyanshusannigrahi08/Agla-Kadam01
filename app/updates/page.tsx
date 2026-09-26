@@ -21,7 +21,7 @@ export default function UpdatesPage() {
     if (!currentUser) { setLoading(false); return; }
     const [menteeResult, profileResult, bookingResult, actionResult] = await Promise.all([
       supabase.from("mentees").select("stage,area,challenge,situation,background,stuck_on").eq("user_id", currentUser.id).maybeSingle(),
-      supabase.from("profiles").select("name,bio,city,current_status").eq("id", currentUser.id).maybeSingle(),
+      supabase.from("profiles").select("full_name,bio,city,occupation").eq("id", currentUser.id).maybeSingle(),
       supabase.from("bookings").select("id,status,scheduled_for,mentor_id").eq("mentee_user_id", currentUser.id).order("scheduled_for", { ascending: true }),
       supabase.from("conversation_actions").select("id,completed,booking_id").eq("user_id", currentUser.id).eq("completed", false),
     ]);
@@ -35,7 +35,7 @@ export default function UpdatesPage() {
     if (active.length) next.push({ icon: CalendarDays, title: active.length === 1 ? "Your next conversation is scheduled." : `${active.length} conversations are on your calendar.`, body: `Your next conversation is ${formatDate(active[0].scheduled_for)}. Bring one decision, one question and a little context.`, href: "/dashboard", cta: "Prepare for the call" });
     if (actions.length) next.push({ icon: CheckCircle2, title: `${actions.length} action${actions.length === 1 ? "" : "s"} still open.`, body: "Keep momentum by choosing the smallest useful action you can take this week.", href: actions[0]?.booking_id ? `/conversation/${actions[0].booking_id}` : "/dashboard", cta: "Continue your plan" });
     if (completed.length) next.push({ icon: MessageCircle, title: "Your last conversation can teach you something.", body: "Capture feedback while the conversation is still fresh. It helps you reflect and helps mentors improve.", href: "/review", cta: "Leave feedback" });
-    const profileFields = [profile?.name, profile?.bio, profile?.city, profile?.current_status].filter(Boolean).length;
+    const profileFields = [profile?.full_name, profile?.bio, profile?.city, profile?.occupation].filter(Boolean).length;
     if (profileFields < 3) next.push({ icon: UserRound, title: "Add more context to your profile.", body: "A clearer profile can make your discovery experience more useful.", href: "/profile-setup", cta: "Improve profile" });
     if (!context && !active.length) next.push({ icon: Sparkles, title: "Tell AglaKadam where you're stuck.", body: "Your situation gives the matching system better context for finding relevant human mentors.", href: "/find-mentor", cta: "Find a mentor" });
     setUpdates(next);

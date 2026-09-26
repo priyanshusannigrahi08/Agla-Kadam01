@@ -54,3 +54,9 @@ test("articles loads and opens the first article", async ({ page }) => {
   await expect(page).toHaveURL(/\/articles\/[^/]+$/);
   await expect(page.locator("h1")).toBeVisible();
 });
+
+test("mentor profile handles a missing public record", async ({ page }) => {
+  await page.goto("/mentors/not-a-real-mentor");
+  await expect(page.getByRole("heading", { name: "Mentor not found" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse mentors" })).toBeVisible();
+});
