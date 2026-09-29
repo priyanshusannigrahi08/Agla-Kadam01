@@ -1,0 +1,362 @@
+[
+  {
+    "id": "tc-01",
+    "category": "career_uncertainty",
+    "mentorId": "arjun-mehta",
+    "query": "I don't know whether I should continue my current degree or drop out to code full-time.",
+    "complexity": "complex",
+    "intent": "education_decision",
+    "expectedBehavior": "Clarifies constraints (financial safety, family, remaining college time), contrasts degrees vs self-taught reality, avoids advising to recklessly drop out, provides actionable 30-day coding test."
+  },
+  {
+    "id": "tc-02",
+    "category": "skill_choices",
+    "mentorId": "kabir-shah",
+    "query": "Python or SQL first for data analytics?",
+    "complexity": "simple",
+    "intent": "comparison",
+    "expectedBehavior": "Answers directly with SQL first for immediate data querying logic or Python for programmatic analysis, explains trade-off concisely, gives a concrete starting milestone."
+  },
+  {
+    "id": "tc-03",
+    "category": "lack_of_direction",
+    "mentorId": "priya-nair",
+    "query": "I want a high-paying career but I don't know what I actually like doing.",
+    "complexity": "complex",
+    "intent": "uncertainty",
+    "expectedBehavior": "Separates compensation desires from skill mastery, warns against picking solely on starting packages, suggests 2-3 structured mini-experiments across tech, product, and business."
+  },
+  {
+    "id": "tc-04",
+    "category": "career_uncertainty",
+    "mentorId": "vikram-rao",
+    "query": "My parents want me to choose finance/CA but I am more interested in technology.",
+    "complexity": "complex",
+    "intent": "career_decision",
+    "expectedBehavior": "Acknowledges family pressure calmly, identifies FinTech as an intersection, maps the tangible commitment of CA vs CS, recommends building a small project before confrontation."
+  },
+  {
+    "id": "tc-05",
+    "category": "education_choices",
+    "mentorId": "kabir-shah",
+    "query": "Is a master's necessary for data analytics jobs in India?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Answers directly that a master's is not mandatory for entry-level analyst roles where portfolio projects and SQL/BI skills dominate, notes when MS helps (advanced ML/R&D)."
+  },
+  {
+    "id": "tc-06",
+    "category": "education_choices",
+    "mentorId": "arjun-mehta",
+    "query": "Should I focus on my college CGPA or build open-source projects?",
+    "complexity": "moderate",
+    "intent": "comparison",
+    "expectedBehavior": "Explains the threshold role of CGPA (e.g., campus eligibility cutoffs) vs project differentiation for off-campus/open-source, gives practical balance rule."
+  },
+  {
+    "id": "tc-07",
+    "category": "career_switching",
+    "mentorId": "priya-nair",
+    "query": "I have 3 years of experience in QA/testing. How can I transition into Product Management?",
+    "complexity": "complex",
+    "intent": "career_decision",
+    "expectedBehavior": "Leverages QA strengths (user empathy, edge cases, sprint familiarity), highlights skill gaps (business metrics, PRDs), suggests internal transfer route and teardowns."
+  },
+  {
+    "id": "tc-08",
+    "category": "skill_choices",
+    "mentorId": "arjun-mehta",
+    "query": "What is the difference between REST APIs and GraphQL?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Direct technical breakdown with clear contrast (over-fetching/under-fetching vs multiple endpoints), concise example, avoids unnecessary questions."
+  },
+  {
+    "id": "tc-09",
+    "category": "internship_decisions",
+    "mentorId": "rohan-kapoor",
+    "query": "I have two offers: an unpaid internship at a fast-growing startup vs an operations role at an MNC. Which should I pick?",
+    "complexity": "complex",
+    "intent": "comparison",
+    "expectedBehavior": "Warns ethically about unpaid work, weighs direct learning/ownership vs resume brand value and compensation, helps user evaluate based on their financial runway."
+  },
+  {
+    "id": "tc-10",
+    "category": "mentor_vs_ai",
+    "mentorId": "arjun-mehta",
+    "query": "Can you do a live mock interview with me for Google L4 right now?",
+    "complexity": "moderate",
+    "intent": "mentor_selection",
+    "expectedBehavior": "Honest limitation: explains AI can provide practice questions and rubric feedback, but live senior technical mock interviews are best experienced with a human mentor on AglaKadam."
+  },
+  {
+    "id": "tc-11",
+    "category": "career_switching",
+    "mentorId": "meera-iyer",
+    "query": "I am a graphic designer. How do I switch to UX/UI design without attending an expensive bootcamp?",
+    "complexity": "complex",
+    "intent": "skill_learning",
+    "expectedBehavior": "Maps transferrable visual skills, emphasizes user research and Figma systems, outlines 2 portfolio case study projects, suggests self-paced roadmap."
+  },
+  {
+    "id": "tc-12",
+    "category": "degree_comparisons",
+    "mentorId": "aditya-bose",
+    "query": "B.Tech in Computer Science vs B.Sc in Data Science — which provides better placement security?",
+    "complexity": "moderate",
+    "intent": "comparison",
+    "expectedBehavior": "Compares curriculum breadth, recruiter bias/eligibility, and long-term flexibility without declaring absolute superiority, advises based on target career."
+  },
+  {
+    "id": "tc-13",
+    "category": "goal_setting",
+    "mentorId": "aisha-khan",
+    "query": "How do I build my personal brand on LinkedIn from zero in 90 days?",
+    "complexity": "moderate",
+    "intent": "planning",
+    "expectedBehavior": "Gives structured 3-phase plan (Niche definition → Proof of work documentation → Network engagement), avoids generic 'post daily' advice."
+  },
+  {
+    "id": "tc-14",
+    "category": "lack_of_direction",
+    "mentorId": "rohan-kapoor",
+    "query": "I have 5 different startup ideas but cannot decide which one to start.",
+    "complexity": "moderate",
+    "intent": "uncertainty",
+    "expectedBehavior": "Introduces validation scorecard (problem severity, access to customers, speed to MVP), gives a 48-hour customer discovery challenge."
+  },
+  {
+    "id": "tc-15",
+    "category": "education_choices",
+    "mentorId": "neha-verma",
+    "query": "5-year integrated BA LLB vs 3-year LLB after graduation for corporate law?",
+    "complexity": "moderate",
+    "intent": "comparison",
+    "expectedBehavior": "Clarifies entry timeline (post-12th vs post-grad), campus placement exposure at NLUs vs general universities, recommends based on current academic stage."
+  },
+  {
+    "id": "tc-16",
+    "category": "education_choices",
+    "mentorId": "ananya-sharma",
+    "query": "I failed NEET UG on my 2nd attempt. Should I take a 3rd drop or look into B.Pharm / Biotechnology?",
+    "complexity": "complex",
+    "intent": "uncertainty",
+    "expectedBehavior": "Empathetic, realistic about drop year mental toll and diminishing score returns, compares allied health science career trajectories, suggests a structured decision deadline."
+  },
+  {
+    "id": "tc-17",
+    "category": "skill_choices",
+    "mentorId": "vikram-rao",
+    "query": "CFA Level 1 or MBA in Finance — which gives better career acceleration for equity research?",
+    "complexity": "moderate",
+    "intent": "comparison",
+    "expectedBehavior": "Evaluates curriculum depth, cost difference, recruitment networks (top B-schools vs self-study CFA), provides decision matrix."
+  },
+  {
+    "id": "tc-18",
+    "category": "career_decision",
+    "mentorId": "rahul-singh",
+    "query": "Civil engineering graduate: should I prepare for GATE/IES or join a private construction firm as site engineer?",
+    "complexity": "complex",
+    "intent": "career_decision",
+    "expectedBehavior": "Contrasts PSU stability and preparation risks with private sector learning curves and starting site salaries, recommends clear timeline boundary."
+  },
+  {
+    "id": "tc-19",
+    "category": "career_switching",
+    "mentorId": "karan-malhotra",
+    "query": "I'm a mechanical engineer wanting to enter Electric Vehicle (EV) battery design. What should I learn?",
+    "complexity": "moderate",
+    "intent": "skill_learning",
+    "expectedBehavior": "Identifies cross-disciplinary skills (thermal management, MATLAB/Simulink, battery chemistry basics, CAD), outlines project ideas."
+  },
+  {
+    "id": "tc-20",
+    "category": "education_choices",
+    "mentorId": "sneha-patel",
+    "query": "Can I practice as a clinical psychologist in India with just an MA in Psychology?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Direct factual answer explaining statutory RCI licensing requirements (M.Phil / PsyD / registered qualifications) vs counseling practice boundaries."
+  },
+  {
+    "id": "tc-21",
+    "category": "planning",
+    "mentorId": "aditya-bose",
+    "query": "Timeline to apply for Fall MS programs in Germany from India?",
+    "complexity": "moderate",
+    "intent": "planning",
+    "expectedBehavior": "Step-by-step 12-month calendar (APS certificate, IELTS/GRE, APS verification, Uni-Assist deadlines, visa blocking account)."
+  },
+  {
+    "id": "tc-22",
+    "category": "education_choices",
+    "mentorId": "isha-menon",
+    "query": "B.Ed vs UGC NET — what is the exact qualification needed to become an assistant professor in a college?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Directly explains that UGC NET (or PhD) is the statutory requirement for college professorship, whereas B.Ed is for school teaching."
+  },
+  {
+    "id": "tc-23",
+    "category": "skill_choices",
+    "mentorId": "aarav-khanna",
+    "query": "How do I land my first paid freelance copywriting client without previous reviews?",
+    "complexity": "moderate",
+    "intent": "skill_learning",
+    "expectedBehavior": "Actionable cold outreach and speculative redesign strategy (sample audit teardowns), pricing guidance, avoiding Upwork race-to-the-bottom."
+  },
+  {
+    "id": "tc-24",
+    "category": "career_uncertainty",
+    "mentorId": "arjun-mehta",
+    "query": "I have been stuck in tutorial hell for 6 months. I understand syntax but freeze when building a project.",
+    "complexity": "complex",
+    "intent": "uncertainty",
+    "expectedBehavior": "Diagnoses passive learning trap, provides 'feature-by-feature' build technique, gives a 3-day scaffolded micro-project with strict zero-tutorial rules."
+  },
+  {
+    "id": "tc-25",
+    "category": "mentor_vs_ai",
+    "mentorId": "priya-nair",
+    "query": "Can you review my company-specific promotion case and tell me if my VP likes me?",
+    "complexity": "moderate",
+    "intent": "mentor_selection",
+    "expectedBehavior": "Acknowledges workplace nuance cannot be read by an AI, suggests frameworks for documenting impact, and recommends talking to a human mentor with corporate leadership experience."
+  },
+  {
+    "id": "tc-26",
+    "category": "internship_decisions",
+    "mentorId": "kabir-shah",
+    "query": "Should I take an internship that requires mostly manual Excel data entry if I want to be a data scientist?",
+    "complexity": "moderate",
+    "intent": "career_decision",
+    "expectedBehavior": "Evaluates if they can automate the tasks using Python/VBA to build a resume story vs risk of getting pigeonholed, gives clear assessment criteria."
+  },
+  {
+    "id": "tc-27",
+    "category": "degree_comparisons",
+    "mentorId": "aditya-bose",
+    "query": "MBA in India (CAT) vs MS in Business Analytics abroad?",
+    "complexity": "complex",
+    "intent": "comparison",
+    "expectedBehavior": "Compares financial investment, currency risk, placement ecosystems, visa stay-back regulations, and generalist management vs analytical roles."
+  },
+  {
+    "id": "tc-28",
+    "category": "goal_setting",
+    "mentorId": "arjun-mehta",
+    "query": "I want to reach 100 LeetCode problems in 30 days. Is this a good goal?",
+    "complexity": "moderate",
+    "intent": "goal_setting",
+    "expectedBehavior": "Critiques blind volume goal vs pattern recognition (Two Pointers, Sliding Window, BFS/DFS), suggests quality over quantity structure."
+  },
+  {
+    "id": "tc-29",
+    "category": "lack_of_direction",
+    "mentorId": "aisha-khan",
+    "query": "I have a marketing degree but every job asks for 2 years of performance marketing experience. What do I do?",
+    "complexity": "complex",
+    "intent": "career_uncertainty",
+    "expectedBehavior": "Suggests proof-of-work experiments (running small ₹500 test ad campaign, managing a local business page, publishing detailed case studies)."
+  },
+  {
+    "id": "tc-30",
+    "category": "career_switching",
+    "mentorId": "vikram-rao",
+    "query": "I am an engineer wanting to switch into Equity Research. Do I need an MBA or can I self-study?",
+    "complexity": "complex",
+    "intent": "career_decision",
+    "expectedBehavior": "Maps concrete steps: write 2 full equity research reports on listed companies, master financial modeling, pass CFA Level 1, pitch directly to analysts."
+  },
+  {
+    "id": "tc-31",
+    "category": "career_uncertainty",
+    "mentorId": "meera-iyer",
+    "query": "Nobody is responding to my UX portfolio. Why?",
+    "complexity": "moderate",
+    "intent": "reflection",
+    "expectedBehavior": "Isolates common portfolio anti-patterns (showing only pretty screens without user problem, lack of business context, buried prototypes), gives audit checklist."
+  },
+  {
+    "id": "tc-32",
+    "category": "planning",
+    "mentorId": "karan-malhotra",
+    "query": "What CAD and FEA software should a 2nd year mechanical student master first?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Directly recommends SolidWorks or CATIA for 3D modeling fundamentals, followed by ANSYS for basic FEA, with 1 hands-on modeling exercise."
+  },
+  {
+    "id": "tc-33",
+    "category": "education_choices",
+    "mentorId": "neha-verma",
+    "query": "Is LLM from abroad useful for practicing in Indian courts?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Clarifies that foreign LLM adds academic prestige or corporate niche but has minimal practical utility in Indian trial court litigation compared to direct chamber experience."
+  },
+  {
+    "id": "tc-34",
+    "category": "mentor_vs_ai",
+    "mentorId": "rohan-kapoor",
+    "query": "Will you sign my NDA before I tell you my startup idea?",
+    "complexity": "simple",
+    "intent": "factual_question",
+    "expectedBehavior": "Explains politely that AI cannot sign legal agreements and emphasizes that ideas without execution hold little value, while keeping conversation secure."
+  },
+  {
+    "id": "tc-35",
+    "category": "skill_choices",
+    "mentorId": "aarav-khanna",
+    "query": "How will generative AI impact copywriting careers in the next 2 years?",
+    "complexity": "moderate",
+    "intent": "reflection",
+    "expectedBehavior": "Balanced analysis: commodity content gets devalued, high-value strategic positioning, brand voice, and conversion copywriting become more valuable."
+  },
+  {
+    "id": "tc-36",
+    "category": "internship_decisions",
+    "mentorId": "rahul-singh",
+    "query": "What should a civil engineer look for during their 3rd year summer industrial training?",
+    "complexity": "moderate",
+    "intent": "planning",
+    "expectedBehavior": "Focuses on concrete site observations (bar bending schedules, concrete pour checks, drawing revisions, safety audits) over passive attendance."
+  },
+  {
+    "id": "tc-37",
+    "category": "degree_comparisons",
+    "mentorId": "sneha-patel",
+    "query": "MA Clinical Psychology vs MA Counseling Psychology?",
+    "complexity": "simple",
+    "intent": "comparison",
+    "expectedBehavior": "Distinguishes psychiatric/clinical hospital settings & diagnosis from counseling for life adjustments and developmental concerns."
+  },
+  {
+    "id": "tc-38",
+    "category": "education_choices",
+    "mentorId": "ananya-sharma",
+    "query": "Is USMLE worth it for Indian medical students considering recent visa and residency competition?",
+    "complexity": "complex",
+    "intent": "career_decision",
+    "expectedBehavior": "Honest breakdown of financial investment, US clinical experience (USCE) costs, match rates, and alternative pathways (NHS/PLAB or NEET PG)."
+  },
+  {
+    "id": "tc-39",
+    "category": "planning",
+    "mentorId": "isha-menon",
+    "query": "How to transition from a corporate trainer to an instructional designer?",
+    "complexity": "moderate",
+    "intent": "skill_learning",
+    "expectedBehavior": "Focuses on ADDIE/SAM models, authoring tools (Articulate Storyline), and building a mini course module as proof of work."
+  },
+  {
+    "id": "tc-40",
+    "category": "goal_setting",
+    "mentorId": "aditya-bose",
+    "query": "How many research papers do I need published to get into a top PhD program?",
+    "complexity": "moderate",
+    "intent": "factual_question",
+    "expectedBehavior": "Clarifies quality over quantity (1 strong tier-1 workshop/conference paper vs 5 low-tier predatory journals), emphasizing research rigor and strong recommendations."
+  }
+]
